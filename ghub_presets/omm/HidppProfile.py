@@ -119,9 +119,18 @@ class Profile:
         if keyval in MouseButton:
             ret['action'] = 'button'
             ret['value'] = (MouseButton)(keyval).name
-        elif keystr.startswith('90') and keyval & 0xFFFFFF00 in MouseButton:
-            ret['action'] = 'button'
-            ret['value'] = (MouseButton)(keyval & 0xFFFFFF00).name
+        elif keystr.startswith('90'):
+            code = (keyval >> 16) & 0xFFFF
+            matched = next(
+                (btn for btn in MouseButton if (btn.value >> 16) & 0xFFFF == code),
+                None,
+            )
+            if matched is not None:
+                ret['action'] = 'button'
+                ret['value'] = matched.name
+            else:
+                ret['action'] = 'unknown'
+                ret['bytes'] = struct.pack('>I', keyval).decode('latin-1')
         elif keystr.startswith('8002'):
             flag = keyval & 0xff00
             key = keyval & 0xff

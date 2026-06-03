@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import re
+import struct
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from .devices import DeviceConfig, G502_BUTTONS
+from .omm.HidppConstants import KeyCode
 from .preset_format import FORMAT_VERSION
 
 PRESET_PREFIX = "0f82f693-5b78-4cf5-867e-"
@@ -23,51 +26,30 @@ MODIFIER_HID = {
     "rgui": 231,
 }
 
-# omm KeyCode name -> USB HID usage (subset used for single-key macros).
-KEY_HID: dict[str, int] = {
-    "a": 4,
-    "b": 5,
-    "c": 6,
-    "d": 7,
-    "e": 8,
-    "f": 9,
-    "g": 10,
-    "h": 11,
-    "i": 12,
-    "j": 13,
-    "k": 14,
-    "l": 15,
-    "m": 16,
-    "n": 17,
-    "o": 18,
-    "p": 19,
-    "q": 20,
-    "r": 21,
-    "s": 22,
-    "t": 23,
-    "u": 24,
-    "v": 25,
-    "w": 26,
-    "x": 27,
-    "y": 28,
-    "z": 29,
-    "f1": 58,
-    "f2": 59,
-    "f3": 60,
-    "f4": 61,
-    "f5": 62,
-    "f6": 63,
-    "f7": 64,
-    "f8": 65,
-    "f9": 66,
-    "f10": 67,
-    "f11": 68,
-    "f12": 69,
-    "enter": 40,
-    "escape": 41,
-    "backspace": 42,
-    "tab": 43,
-    "space": 44,
+KEY_HID: dict[str, int] = {name: int(code) for name, code in KeyCode.__members__.items()}
+
+KEY_DISPLAY = {
+    "lctrl": "CTRL",
+    "rctrl": "CTRL",
+    "lshift": "SHIFT",
+    "rshift": "SHIFT",
+    "lalt": "ALT",
+    "ralt": "ALT",
+    "lgui": "CMD",
+    "rgui": "CMD",
+    "space": "SPACEBAR",
+    "left": "LEFT",
+    "rightarrow": "RIGHT",
+    "leftarrow": "LEFT",
+    "up": "UP",
+    "uparrow": "UP",
+    "down": "DOWN",
+    "downarrow": "DOWN",
+    "right": "RIGHT",
+    "enter": "ENTER",
+    "tab": "TAB",
+    "backspace": "BACKSPACE",
+    "escape": "ESC",
 }
 
 
@@ -83,14 +65,123 @@ def _f_key_preset(n: int) -> str:
     return _preset_card_id(f"02{n:02x}00000000")
 
 
+def _key_hid(name: str) -> int | None:
+    key = name.lower()
+    if key in MODIFIER_HID:
+        return MODIFIER_HID[key]
+    if key in KEY_HID:
+        return KEY_HID[key]
+    return None
+
+
+def _key_display(name: str) -> str:
+    key = name.lower()
+    return KEY_DISPLAY.get(key, key.upper())
+
+
+def _normalize_action(action: dict[str, Any]) -> dict[str, Any]:
+    if action.get("action") != "unknown":
+        return action
+    raw = action.get("bytes", "")
+    if not isinstance(raw, str):
+        return action
+    try:
+        val = struct.unpack(">I", raw.encode("latin-1"))[0]
+    except (struct.error, UnicodeEncodeError):
+        return action
+    if (val >> 16) & 0xFFFF == 0x900B:
+        return {"action": "button", "value": "g_shift"}
+    return action
+
+
+def _macro_label(text: str) -> str:
+    parts: list[str] = []
+    for tok in text.strip().split():
+        if tok.startswith(("+", "-")):
+            key = tok[1:].lower()
+            if key in ("lgui", "rgui"):
+                parts.append("⌘")
+            elif key in ("lctrl", "rctrl"):
+                parts.append("⌃")
+            elif key in ("lshift", "rshift"):
+                parts.append("⇧")
+            elif key in ("lalt", "ralt"):
+                parts.append("⌥")
+            elif tok.startswith("+") and key in KEY_HID:
+                parts.append(_key_display(key))
+    compact = "".join(parts)
+    return compact or "Onboard Macro"
+
+
+def _omm_macro_to_components(text: str) -> list[dict[str, Any]]:
+    components: list[dict[str, Any]] = []
+    for tok in text.strip().split():
+        if not tok:
+            continue
+        sleep_match = re.fullmatch(r"sleep\((\d+)\)", tok)
+        if sleep_match:
+            components.append({"delay": {"durationMs": int(sleep_match.group(1))}})
+            continue
+        if tok[0] not in "+-":
+            continue
+        is_down = tok[0] == "+"
+        key_name = tok[1:].lower()
+        hid = _key_hid(key_name)
+        if hid is None:
+            continue
+        keyboard: dict[str, Any] = {
+            "displayName": _key_display(key_name),
+            "hidUsage": str(hid),
+        }
+        if is_down:
+            keyboard["isDown"] = True
+        components.append({"keyboard": keyboard})
+    return components
+
+
+def _macro_sequence_card(
+    text: str,
+    cards: list[dict[str, Any]],
+    profile_id: str,
+) -> str:
+    components = _omm_macro_to_components(text)
+    label = _macro_label(text)
+    card_id = _new_id()
+    cards.append(
+        {
+            "id": card_id,
+            "name": label,
+            "attribute": "MACRO_PLAYBACK",
+            "profileId": profile_id,
+            "macro": {
+                "type": "SEQUENCE",
+                "onboardable": True,
+                "sequence": {
+                    "defaultDelay": 50,
+                    "heldSequence": {},
+                    "pressSequence": {},
+                    "releaseSequence": {},
+                    "showUpDown": True,
+                    "simpleSequence": {"components": components},
+                    "toggleSequence": {},
+                    "useDefaultDelay": True,
+                    "useSimpleActions": True,
+                },
+            },
+        }
+    )
+    return card_id
+
+
 def _action_to_card(action: dict[str, Any], cards: list[dict[str, Any]], profile_id: str) -> str:
+    action = _normalize_action(action)
     kind = action.get("action")
     if kind == "button":
         value = action.get("value", "")
         if value in ("no_action", "no_button"):
             return _preset_card_id("090700000000")
         mouse_presets = {
-            "left_button": "020100000000",  # fallback; often primary is separate slot
+            "left_button": "020100000000",
             "middle_button": "020300000000",
             "backward_button": "016800000000",
             "forward_button": "016900000000",
@@ -113,7 +204,7 @@ def _action_to_card(action: dict[str, Any], cards: list[dict[str, Any]], profile
             part = part.strip().lower()
             if part in MODIFIER_HID:
                 modifiers.append(MODIFIER_HID[part])
-        code = KEY_HID.get(key_name)
+        code = _key_hid(key_name)
         if code is not None:
             card_id = _new_id()
             label_parts = []
@@ -121,7 +212,11 @@ def _action_to_card(action: dict[str, Any], cards: list[dict[str, Any]], profile
                 label_parts.append("⌘")
             if "lshift" in mod_str.lower():
                 label_parts.append("⇧")
-            label_parts.append(key_name.upper())
+            if "lctrl" in mod_str.lower():
+                label_parts.append("⌃")
+            if "lalt" in mod_str.lower():
+                label_parts.append("⌥")
+            label_parts.append(_key_display(key_name))
             cards.append(
                 {
                     "id": card_id,
@@ -136,7 +231,10 @@ def _action_to_card(action: dict[str, Any], cards: list[dict[str, Any]], profile
                 }
             )
             return card_id
-    elif kind == "macro":
+    elif kind in ("macro", "macro_unparsed"):
+        text = action.get("value") or ""
+        if text:
+            return _macro_sequence_card(text, cards, profile_id)
         card_id = _new_id()
         cards.append(
             {
@@ -166,6 +264,16 @@ def _dpi_levels(raw: list[int]) -> list[int]:
     return levels[:5] if levels else [800, 1600, 3200]
 
 
+def _dpi_from_index(levels: list[int], index: int | None) -> int:
+    if not levels:
+        return 800
+    if index is None or index < 1:
+        return levels[0]
+    if index <= len(levels):
+        return levels[index - 1]
+    return levels[-1]
+
+
 def omm_to_ghub_preset(
     omm_json: dict[str, Any],
     device: DeviceConfig,
@@ -178,12 +286,9 @@ def omm_to_ghub_preset(
     cards: list[dict[str, Any]] = []
 
     dpi_levels = _dpi_levels(omm_json.get("dpi_list", []))
-    default_dpi = omm_json.get("dpi_default") or (dpi_levels[0] if dpi_levels else 800)
+    default_dpi = _dpi_from_index(dpi_levels, omm_json.get("dpi_default"))
+    shift_dpi = _dpi_from_index(dpi_levels, omm_json.get("dpi_shift"))
     active_dpi = default_dpi
-    for d in dpi_levels:
-        if d == default_dpi:
-            active_dpi = d
-            break
 
     mouse_settings_id = _new_id()
     report_rate = omm_json.get("extended_report_rate") or omm_json.get("report_rate") or 1000
@@ -198,7 +303,7 @@ def omm_to_ghub_preset(
                     "activeDpi": active_dpi,
                     "defaultDpi": default_dpi,
                     "levels": dpi_levels,
-                    "shiftDpi": omm_json.get("dpi_shift") or default_dpi,
+                    "shiftDpi": shift_dpi,
                 },
                 "reportRate": {"value": report_rate},
             },
