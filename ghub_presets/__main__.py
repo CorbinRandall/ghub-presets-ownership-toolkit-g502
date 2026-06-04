@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -93,6 +94,7 @@ def cmd_import(args: argparse.Namespace) -> int:
         conflict_mode=conflict,
         rename_to=args.rename,
         target_device=args.target_device,
+        target_platform="mac" if args.for_mac else None,
         db_path=args.db_path,
         dry_run=args.dry_run,
     )
@@ -121,6 +123,7 @@ def cmd_pull(args: argparse.Namespace) -> int:
             args.slot,
             output,
             profile_name=args.name,
+            target_platform="mac" if args.for_mac else None,
         )
     except (RuntimeError, OSError, AssertionError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -129,6 +132,21 @@ def cmd_pull(args: argparse.Namespace) -> int:
     preset = load_preset_file(path)
     upsert_manifest_entry(path.parent, path.name, preset.get("name", "?"), "mouse-pull")
     print(f"Pulled onboard slot {args.slot} -> {path}")
+    return 0
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    from .compare import compare_onboard_to_ghub, print_compare_report
+
+    report = compare_onboard_to_ghub(args.onboard, args.ghub)
+    print_compare_report(report)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"\nWrote {args.output}")
     return 0
 
 
@@ -181,6 +199,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Remap slot IDs for target mouse model",
     )
     p_import.add_argument("--dry-run", action="store_true", help="Preview without writing settings.db")
+    p_import.add_argument(
+        "--for-mac",
+        action="store_true",
+        help="Re-convert onboard presets for macOS (Ctrl→Cmd editing shortcuts)",
+    )
 
     p_pull = sub.add_parser("pull", help="Pull onboard profile from mouse via HID++")
     p_pull.add_argument("--slot", type=int, default=1, help="Onboard profile slot (1-5)")
@@ -192,8 +215,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_pull.add_argument("--output", help="Output preset file path")
     p_pull.add_argument("--name", help="Override imported profile name")
+    p_pull.add_argument(
+        "--for-mac",
+        action="store_true",
+        help="Map Windows Ctrl editing shortcuts to Mac Cmd when converting",
+    )
 
     sub.add_parser("status", help="Show G Hub and preset paths")
+
+    p_compare = sub.add_parser(
+        "compare",
+        help="Compare onboard pull JSON to G Hub export (Rosetta stone)",
+    )
+    p_compare.add_argument(
+        "--onboard",
+        type=Path,
+        required=True,
+        help="Onboard pull file (onboard_raw_slotN.json or preset with ommRaw)",
+    )
+    p_compare.add_argument(
+        "--ghub",
+        type=Path,
+        required=True,
+        help="G Hub export .lghub-preset.json (e.g. from upload-from-device)",
+    )
+    p_compare.add_argument(
+        "--output",
+        type=Path,
+        help="Write rosetta report JSON to this path",
+    )
 
     return parser
 
@@ -207,6 +257,7 @@ def main(argv: list[str] | None = None) -> int:
         "export": cmd_export,
         "import": cmd_import,
         "pull": cmd_pull,
+        "compare": cmd_compare,
         "status": cmd_status,
     }
     return handlers[args.command](args)

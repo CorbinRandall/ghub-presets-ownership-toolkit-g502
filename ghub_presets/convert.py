@@ -8,8 +8,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from .devices import DeviceConfig, G502_BUTTONS
+from .devices import DeviceConfig, G502_BUTTONS, G502_SLOT_LABELS, omm_index_to_ghub_slot
 from .omm.HidppConstants import KeyCode
+from .platform_remap import remap_omm_for_platform
 from .preset_format import FORMAT_VERSION
 
 PRESET_PREFIX = "0f82f693-5b78-4cf5-867e-"
@@ -139,6 +140,74 @@ def _omm_macro_to_components(text: str) -> list[dict[str, Any]]:
     return components
 
 
+def _parse_chord_keystroke(text: str) -> tuple[list[int], int, str] | None:
+    """If *text* is one modified key press, return modifiers, key code, and label."""
+    modifiers: list[int] = []
+    key_code: int | None = None
+    key_name: str | None = None
+    key_downs = 0
+
+    for tok in text.strip().split():
+        if re.fullmatch(r"sleep\(\d+\)", tok):
+            continue
+        if tok[0] not in "+-":
+            continue
+        is_down = tok[0] == "+"
+        name = tok[1:].lower()
+        hid = _key_hid(name)
+        if hid is None:
+            return None
+        if name in MODIFIER_HID:
+            if is_down:
+                modifiers.append(hid)
+            continue
+        if is_down:
+            key_downs += 1
+            key_code = hid
+            key_name = name
+        elif key_name != name:
+            return None
+
+    if key_downs != 1 or key_code is None or key_name is None:
+        return None
+
+    label_parts: list[str] = []
+    if 227 in modifiers or 231 in modifiers:
+        label_parts.append("⌘")
+    if 225 in modifiers or 229 in modifiers:
+        label_parts.append("⇧")
+    if 224 in modifiers or 228 in modifiers:
+        label_parts.append("⌃")
+    if 226 in modifiers or 230 in modifiers:
+        label_parts.append("⌥")
+    label_parts.append(_key_display(key_name))
+    return modifiers, key_code, "".join(label_parts)
+
+
+def _keystroke_card(
+    modifiers: list[int],
+    code: int,
+    label: str,
+    cards: list[dict[str, Any]],
+    profile_id: str,
+) -> str:
+    card_id = _new_id()
+    cards.append(
+        {
+            "id": card_id,
+            "name": label,
+            "attribute": "MACRO_PLAYBACK",
+            "profileId": profile_id,
+            "macro": {
+                "type": "KEYSTROKE",
+                "actionName": label,
+                "keystroke": {"code": code, "modifiers": modifiers},
+            },
+        }
+    )
+    return card_id
+
+
 def _macro_sequence_card(
     text: str,
     cards: list[dict[str, Any]],
@@ -234,6 +303,10 @@ def _action_to_card(action: dict[str, Any], cards: list[dict[str, Any]], profile
     elif kind in ("macro", "macro_unparsed"):
         text = action.get("value") or ""
         if text:
+            chord = _parse_chord_keystroke(text)
+            if chord is not None:
+                modifiers, code, label = chord
+                return _keystroke_card(modifiers, code, label, cards, profile_id)
             return _macro_sequence_card(text, cards, profile_id)
         card_id = _new_id()
         cards.append(
@@ -280,7 +353,10 @@ def omm_to_ghub_preset(
     *,
     profile_name: str | None = None,
     slot: int | None = None,
+    target_platform: str | None = None,
 ) -> dict[str, Any]:
+    if target_platform:
+        omm_json = remap_omm_for_platform(omm_json, target_platform)
     profile_id = _new_id()
     prefix = device.slot_prefix
     cards: list[dict[str, Any]] = []
@@ -363,11 +439,23 @@ def omm_to_ghub_preset(
     }
 
     readable_buttons = []
-    for idx, g_slot in enumerate(G502_BUTTONS):
+    for idx in range(max(len(buttons), len(buttons_gshift))):
+        g_slot = omm_index_to_ghub_slot(idx)
+        label = G502_SLOT_LABELS.get(g_slot, g_slot)
         if idx < len(buttons):
-            readable_buttons.append({"slot": g_slot, "action": buttons[idx]})
+            readable_buttons.append(
+                {"omm_index": idx, "slot": g_slot, "label": label, "layer": "normal", "action": buttons[idx]}
+            )
         if idx < len(buttons_gshift):
-            readable_buttons.append({"slot": f"{g_slot}_shifted", "action": buttons_gshift[idx]})
+            readable_buttons.append(
+                {
+                    "omm_index": idx,
+                    "slot": g_slot,
+                    "label": label,
+                    "layer": "gshift",
+                    "action": buttons_gshift[idx],
+                }
+            )
 
     return {
         "format": FORMAT_VERSION,
