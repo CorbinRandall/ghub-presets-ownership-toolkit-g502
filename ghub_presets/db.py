@@ -35,11 +35,26 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def prepare_settings_db(db_path: Path | None = None) -> None:
+    """Merge WAL into the main DB so reads/writes see the latest data (G Hub must be quit)."""
+    db_path = db_path or ghub_settings_db()
+    if not db_path.exists():
+        raise FileNotFoundError(f"settings.db not found: {db_path}")
+
+    conn = _connect(db_path)
+    try:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def read_settings(db_path: Path | None = None) -> dict[str, Any]:
     db_path = db_path or ghub_settings_db()
     if not db_path.exists():
         raise FileNotFoundError(f"settings.db not found: {db_path}")
 
+    prepare_settings_db(db_path)
     conn = _connect(db_path)
     try:
         row = conn.execute("SELECT _id, file FROM data ORDER BY _id DESC LIMIT 1").fetchone()

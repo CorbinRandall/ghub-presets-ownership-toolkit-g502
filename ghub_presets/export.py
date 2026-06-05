@@ -12,6 +12,13 @@ from typing import Any
 from .db import detect_slot_prefix, list_profiles, read_settings
 from .devices import slot_prefix_for_model
 from .preset_format import FORMAT_VERSION
+from .paths import presets_dir
+from .system_profile import (
+    is_system_profile_name,
+    normalize_system_preset,
+    system_presets_dir,
+    SYSTEM_PROFILE_FILENAME,
+)
 
 
 def _cards_index(settings: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -133,7 +140,19 @@ def export_all_profiles(folder: Path, *, db_path: Path | None = None) -> list[Pa
     settings = read_settings(db_path)
     paths: list[Path] = []
     for profile in list_profiles(settings):
-        paths.append(write_preset_file(folder, profile_to_preset(settings, profile)))
+        preset = profile_to_preset(settings, profile)
+        name = profile.get("name", "")
+        if is_system_profile_name(name):
+            out_dir = system_presets_dir(folder)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            path = out_dir / SYSTEM_PROFILE_FILENAME
+            path.write_text(
+                json.dumps(normalize_system_preset(preset), indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        else:
+            path = write_preset_file(folder, preset)
+        paths.append(path)
     return paths
 
 

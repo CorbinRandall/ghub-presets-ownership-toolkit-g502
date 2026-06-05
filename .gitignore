@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -5,7 +6,24 @@ __pycache__/
 dist/
 build/
 *.egg
-.DS_Store
 .venv/
 venv/
 .env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# --- Personal preset library (never commit your mouse profiles) ---
+Presets/*.lghub-preset.json
+Presets/onboard_slot*.lghub-preset.json
+Presets/manifest.json
+Presets/_system/*.json
+Presets/onboard/**
+!Presets/onboard/.gitkeep
+Presets/_archive/**
+Presets/reference/**
+
+# Keep folder docs / structure
+!Presets/README.txt
+!Presets/_system/README.txt

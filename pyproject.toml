@@ -18,3 +18,6 @@ ghub-presets = "ghub_presets.__main__:main_entry"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ghub_presets*"]
+
+[tool.setuptools.package-data]
+ghub_presets = ["bundled/*.json"]

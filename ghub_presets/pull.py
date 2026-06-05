@@ -22,13 +22,8 @@ def _import_omm():
     return LogiHPP20, FeatureOnboardProfile
 
 
-def pull_onboard_profile(
-    device_key: str,
-    slot: int,
-    *,
-    output: Path | None = None,
-    profile_name: str | None = None,
-) -> dict[str, Any]:
+def pull_onboard_omm_json(device_key: str, slot: int) -> dict[str, Any]:
+    """Read raw onboard profile JSON from mouse (Rosetta / truth layer)."""
     require_ghub_stopped()
     device = get_device(device_key)
     LogiHPP20, FeatureOnboardProfile = _import_omm()
@@ -46,18 +41,31 @@ def pull_onboard_profile(
                 f"Enable it in G Hub or with omm --enable."
             )
         data = omm.onboard_profile_to_bin()
-        omm_json = omm.profile_bin_to_json(data)
+        return omm.profile_bin_to_json(data)
     finally:
         if omm is not None:
             omm.close()
         else:
             dev.close()
 
+
+def pull_onboard_profile(
+    device_key: str,
+    slot: int,
+    *,
+    output: Path | None = None,
+    profile_name: str | None = None,
+    target_platform: str | None = None,
+) -> dict[str, Any]:
+    device = get_device(device_key)
+    omm_json = pull_onboard_omm_json(device_key, slot)
+
     return omm_to_ghub_preset(
         omm_json,
         device,
         profile_name=profile_name or omm_json.get("profile_name"),
         slot=slot,
+        target_platform=target_platform,
     )
 
 
@@ -67,9 +75,21 @@ def pull_to_file(
     output: Path,
     *,
     profile_name: str | None = None,
+    target_platform: str | None = None,
+    raw: bool = False,
 ) -> Path:
-    preset = pull_onboard_profile(device_key, slot, profile_name=profile_name)
     output.parent.mkdir(parents=True, exist_ok=True)
+    if raw:
+        omm_json = pull_onboard_omm_json(device_key, slot)
+        output.write_text(json.dumps(omm_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        return output
+
+    preset = pull_onboard_profile(
+        device_key,
+        slot,
+        profile_name=profile_name,
+        target_platform=target_platform,
+    )
     output.write_text(json.dumps(preset, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return output
 

@@ -42,5 +42,11 @@ def upsert_manifest_entry(folder: Path, filename: str, name: str, source: str) -
     save_manifest(folder, manifest)
 
 
+def remove_manifest_entry(folder: Path, file_key: str) -> None:
+    manifest = load_manifest(folder)
+    manifest["presets"] = [p for p in manifest.get("presets", []) if p.get("file") != file_key]
+    save_manifest(folder, manifest)
+
+
 def list_manifest_presets(folder: Path) -> list[dict[str, Any]]:
     return load_manifest(folder).get("presets", [])

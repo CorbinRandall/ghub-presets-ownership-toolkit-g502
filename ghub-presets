@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+export GHUB_PRESET_TOOLKIT_ROOT="$ROOT"
+export GHUB_PRESETS_DIR="$ROOT/Presets"
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m ghub_presets "$@"
+exec python3 -m ghub_presets --folder "$ROOT/Presets" "$@"
