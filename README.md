@@ -2,7 +2,9 @@
 
 Take full control of your Logitech G Hub mouse profiles — **export**, **pull from onboard memory**, and **import** — without relying on Logitech cloud sync.
 
-**Not affiliated with Logitech.** Use at your own risk; always back up `settings.db`.
+> **Independent project — not affiliated with Logitech or Logitech G HUB.**  
+> Modifies your local `settings.db` while G Hub is quit. [Use at your own risk](DISCLAIMER.md).  
+> Read [SECURITY.md](SECURITY.md) before Import or Replace.
 
 **→ New here? Read [START_HERE.md](START_HERE.md)**
 
@@ -78,6 +80,15 @@ ghub-presets quit-ghub
 - Scroll-wheel tilt assignments may be software-only
 - Cannot modify G Hub while it is open
 
+## Legal & safety
+
+| Document | Purpose |
+|----------|---------|
+| [DISCLAIMER.md](DISCLAIMER.md) | Not affiliated with Logitech, no warranty, your responsibility |
+| [SECURITY.md](SECURITY.md) | What files are touched, backups, recovery steps |
+| [NOTICE.md](NOTICE.md) | Third-party code and trademarks |
+| [LICENSE](LICENSE) | MIT license |
+
 ## License
 
-MIT — see [LICENSE](LICENSE). Vendored HID++ code adapted from [lexr1/omm.py](https://github.com/lexr1/omm.py).
+MIT — see [LICENSE](LICENSE).

@@ -342,7 +342,11 @@ def cmd_status(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ghub-presets",
-        description="Export, import, and pull Logitech G Hub mouse profiles.",
+        description=(
+            "Export, import, and pull Logitech G Hub mouse profiles. "
+            "Independent tool — not affiliated with Logitech. "
+            "Modifies local settings.db; see DISCLAIMER.md and SECURITY.md."
+        ),
     )
     parser.add_argument(
         "--folder",

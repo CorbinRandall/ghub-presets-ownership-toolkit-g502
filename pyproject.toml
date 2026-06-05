@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ghub-presets"
 version = "1.0.0"
-description = "Export, import, and pull Logitech G Hub mouse profiles"
+description = "Independent toolkit to export, import, and pull Logitech G Hub mouse profiles (not affiliated with Logitech)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

@@ -30,6 +30,7 @@ echo ==============================================
 echo.
 echo IMPORTANT: Quit Logitech G Hub completely first!
 echo.
+echo Not affiliated with Logitech. Modifies settings.db - see DISCLAIMER.md
 echo.
 
 if /i "%ACTION%"=="setup" goto :setup

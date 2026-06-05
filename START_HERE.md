@@ -2,6 +2,9 @@
 
 Full control of your Logitech mouse profiles: **export**, **backup on the mouse**, and **import** into G Hub — without Logitech cloud sync.
 
+> **Not affiliated with Logitech.** This tool edits your local G Hub database.  
+> Read [DISCLAIMER.md](DISCLAIMER.md) and [SECURITY.md](SECURITY.md) before Import or Replace.
+
 ## Get the toolkit
 
 ```bash
@@ -90,3 +93,10 @@ python3 -m ghub_presets pull --slot 1 --device g502
 ## Mouse note
 
 Pull is tuned for **G502** (`--device g502`). Other mice need different device flags — see main `README.md`.
+
+## Safety (short version)
+
+- **Your data stays on your machine** — no cloud upload.
+- **Quit G Hub fully** before Export / Import / Replace (menu bar agent counts as running).
+- **Automatic DB backup** before writes — see [SECURITY.md](SECURITY.md) for restore steps.
+- **Not official Logitech software** — no Logitech logos; don’t claim endorsement when sharing.

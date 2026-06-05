@@ -28,6 +28,8 @@ _banner() {
   echo "IMPORTANT: Quit Logitech G Hub completely first!"
   echo "(Menu bar icon -> Quit, or Force Quit in Activity Monitor)"
   echo ""
+  echo "Not affiliated with Logitech. Modifies settings.db — see DISCLAIMER.md"
+  echo ""
 }
 
 _pause() {
