@@ -48,8 +48,14 @@ EOF
 fi
 
 if git remote get-url origin >/dev/null 2>&1; then
-  echo "Pushing to existing remote..."
-  git push -u origin HEAD
+  echo "Pushing to origin..."
+  git push origin HEAD
+  URL="$(gh repo view --json url -q .url 2>/dev/null || git remote get-url origin)"
+  echo ""
+  echo "Done: $URL"
+  echo ""
+  read -r -p "Press Enter to close..."
+  exit 0
 else
   echo "Creating public repo and pushing..."
   gh repo create "$REPO_NAME" \

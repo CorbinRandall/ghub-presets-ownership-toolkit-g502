@@ -2,12 +2,23 @@
 
 Full control of your Logitech mouse profiles: **export**, **backup on the mouse**, and **import** into G Hub — without Logitech cloud sync.
 
+## Get the toolkit
+
+```bash
+git clone https://github.com/CorbinRandall/ghub-presets.git
+cd ghub-presets
+```
+
+Or download ZIP from [github.com/CorbinRandall/ghub-presets](https://github.com/CorbinRandall/ghub-presets).
+
 ## What you need
 
 1. **Python 3.10+** — [python.org/downloads](https://www.python.org/downloads/)  
    - Windows: check **“Add python.exe to PATH”** during install  
 2. **Logitech G Hub** installed  
 3. This repo folder on your computer  
+
+**Your presets are not in git** — after clone, run Export or copy your local `Presets/` folder in.
 
 ## First time setup
 
