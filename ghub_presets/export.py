@@ -13,6 +13,8 @@ from .db import detect_slot_prefix, list_profiles, read_settings
 from .devices import slot_prefix_for_model
 from .preset_format import FORMAT_VERSION
 from .paths import presets_dir
+from .builtin_cards import materialize_builtin_cards
+from .rosetta import describe_builtin_suffix, is_builtin_preset_id, suffix as builtin_suffix
 from .system_profile import (
     is_system_profile_name,
     normalize_system_preset,
@@ -37,18 +39,20 @@ def _collect_card_ids(profile: dict[str, Any]) -> set[str]:
     return ids
 
 
-def _describe_card(card: dict[str, Any] | None, card_id: str) -> str:
+def _describe_card(
+    card: dict[str, Any] | None,
+    card_id: str,
+    *,
+    slot_id: str | None = None,
+) -> str:
+    if not card and is_builtin_preset_id(card_id):
+        return describe_builtin_suffix(builtin_suffix(card_id), slot_id=slot_id)
+
     if not card:
-        suffix = card_id.split("-")[-1]
-        if suffix.startswith("020") and len(suffix) >= 4:
-            try:
-                n = int(suffix[2:4], 16)
-                return f"F{n}"
-            except ValueError:
-                pass
-        if suffix == "090700000000":
+        suf = builtin_suffix(card_id)
+        if suf == "090700000000":
             return "Disabled / G-Shift default"
-        return f"Built-in preset {suffix}"
+        return f"Built-in preset {suf}"
 
     name = card.get("name")
     if name and not name.startswith("DEFAULT_CARD_NAME"):
@@ -71,7 +75,7 @@ def _build_readable(profile: dict[str, Any], cards: dict[str, dict[str, Any]]) -
         entry = {
             "slot": slot,
             "cardId": cid,
-            "action": _describe_card(card, cid),
+            "action": _describe_card(card, cid, slot_id=slot),
         }
         buttons.append(entry)
         if card and card.get("attribute") == "MOUSE_SETTINGS":
@@ -109,7 +113,7 @@ def profile_to_preset(settings: dict[str, Any], profile: dict[str, Any]) -> dict
     cards = [copy.deepcopy(cards_map[cid]) for cid in card_ids if cid in cards_map]
     source_device, slot_prefix = _infer_source_device(settings, profile)
 
-    return {
+    preset = {
         "format": FORMAT_VERSION,
         "name": profile.get("name", "Unnamed"),
         "sourceDevice": source_device,
@@ -120,6 +124,8 @@ def profile_to_preset(settings: dict[str, Any], profile: dict[str, Any]) -> dict
         "ommRaw": None,
         "readable": _build_readable(profile, cards_map),
     }
+    materialize_builtin_cards(preset)
+    return preset
 
 
 def export_profile_by_name(

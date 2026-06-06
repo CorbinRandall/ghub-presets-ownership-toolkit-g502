@@ -67,6 +67,8 @@ ghub-presets quit-ghub
 
 ## Supported devices (v1)
 
+See **[ghub_presets/ROSETTA.md](ghub_presets/ROSETTA.md)** for G502 slot names, built-in preset ID rules (including why g1/g2/g3 clicks share suffixes with F1–F3), and OMM onboard mapping.
+
 | `--device` | Mouse |
 |------------|-------|
 | `g502` | G502 Proteus Spectrum (PID 0xC332) |
