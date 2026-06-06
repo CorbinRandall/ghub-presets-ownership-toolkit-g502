@@ -22,6 +22,7 @@ from .export import load_preset_file
 from .system_profile import (
     collect_import_paths,
     ensure_system_profile_file,
+    is_system_profile_name,
     system_profile_keep_names,
     user_profile_names_from_paths,
     read_preset_name,
@@ -379,6 +380,8 @@ def replace_library_with_presets(
         final_names = {p.get("name") for p in list_profiles(read_settings(db_path))}
         extra = sorted(final_names - keep_names)
         missing = sorted(keep_names - final_names)
+        if missing and any(is_system_profile_name(n) for n in final_names):
+            missing = [m for m in missing if not is_system_profile_name(m)]
         if extra or missing:
             raise RuntimeError(
                 "Replace did not stick in settings.db. "
