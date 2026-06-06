@@ -54,6 +54,12 @@ SLOT_PREFIX_BY_MODEL = {
     cfg.model_id: cfg.slot_prefix for cfg in DEVICES.values()
 }
 
+# G Hub settings.db uses alternate modelId spellings.
+MODEL_ID_ALIASES: dict[str, str] = {
+    "g502_wireless": "g502wireless",
+    "g502_hero": "g502_spectrum",
+}
+
 # G502 button slots in G Hub assignment naming (g1..g11 + shifted layers).
 # OMM onboard profile stores buttons in this same order (index 0 = g1, … index 10 = g11).
 G502_BUTTONS = [f"g{i}" for i in range(1, 12)]
@@ -87,7 +93,8 @@ def get_device(key: str) -> DeviceConfig:
 
 
 def slot_prefix_for_model(model_id: str) -> str | None:
-    return SLOT_PREFIX_BY_MODEL.get(model_id)
+    normalized = MODEL_ID_ALIASES.get(model_id, model_id)
+    return SLOT_PREFIX_BY_MODEL.get(normalized)
 
 
 def remap_slot_id(slot_id: str, from_prefix: str, to_prefix: str) -> str:

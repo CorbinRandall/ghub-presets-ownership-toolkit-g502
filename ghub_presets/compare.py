@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .export import load_preset_file
+from .rosetta import describe_builtin_suffix, is_builtin_preset_id, suffix as builtin_suffix
 
 
 def _fmt_omm(action: dict[str, Any]) -> str:
@@ -38,7 +39,10 @@ def _ghub_assignment(data: dict[str, Any], slot: str, *, shifted: bool = False) 
             return f"{card.get('name', macro.get('actionName', '?'))} (KEYSTROKE)"
         if macro.get("type") == "SEQUENCE":
             return f"{card.get('name', '?')} (SEQUENCE)"
-        return card.get("name") or assignment["cardId"][-12:]
+        cid = assignment["cardId"]
+        if is_builtin_preset_id(cid):
+            return describe_builtin_suffix(builtin_suffix(cid), slot_id=sid)
+        return card.get("name") or cid[-12:]
     return "(none)"
 
 

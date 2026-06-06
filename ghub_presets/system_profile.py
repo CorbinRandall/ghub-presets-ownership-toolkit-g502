@@ -128,5 +128,5 @@ def user_profile_names_from_paths(paths: list[Path]) -> set[str]:
     for path in paths:
         if is_system_preset_path(path):
             continue
-        names.add(_read_preset_name(path))
+        names.add(read_preset_name(path))
     return names

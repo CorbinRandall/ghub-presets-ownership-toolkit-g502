@@ -19,9 +19,11 @@ from .db import (
 )
 from .devices import DEVICES, get_device, remap_slot_id, slot_prefix_for_model
 from .export import load_preset_file
+from .builtin_cards import materialize_builtin_cards
 from .system_profile import (
     collect_import_paths,
     ensure_system_profile_file,
+    is_system_profile_name,
     system_profile_keep_names,
     user_profile_names_from_paths,
     read_preset_name,
@@ -141,6 +143,52 @@ def _apply_slot_remap(profile: dict[str, Any], from_prefix: str | None, to_prefi
             assignment["slotId"] = remap_slot_id(slot_id, from_prefix, to_prefix)
 
 
+def _filter_assignments_for_prefix(profile: dict[str, Any], prefix: str | None) -> None:
+    if not prefix:
+        return
+    profile["assignments"] = [
+        assignment
+        for assignment in profile.get("assignments", [])
+        if assignment.get("slotId", "").startswith(prefix)
+    ]
+
+
+def _known_slot_prefixes(settings: dict[str, Any]) -> set[str]:
+    prefixes: set[str] = set()
+    for device in settings.get("devices/known", {}).get("knownList", []):
+        prefix = slot_prefix_for_model(device.get("modelId", ""))
+        if prefix:
+            prefixes.add(prefix)
+    return prefixes
+
+
+def _mirror_companion_assignments(
+    profile: dict[str, Any],
+    source_prefix: str | None,
+    settings: dict[str, Any],
+) -> None:
+    """Copy bindings to other known G502 slot prefixes (G Hub adds them on startup)."""
+    if not source_prefix:
+        return
+    companions = _known_slot_prefixes(settings) - {source_prefix}
+    if not companions:
+        return
+
+    existing = {assignment.get("slotId") for assignment in profile.get("assignments", [])}
+    additions: list[dict[str, Any]] = []
+    for assignment in profile.get("assignments", []):
+        slot_id = assignment.get("slotId", "")
+        if not slot_id.startswith(source_prefix):
+            continue
+        for companion in companions:
+            mirrored = remap_slot_id(slot_id, source_prefix, companion)
+            if mirrored in existing:
+                continue
+            additions.append({"cardId": assignment["cardId"], "slotId": mirrored})
+            existing.add(mirrored)
+    profile.setdefault("assignments", []).extend(additions)
+
+
 def _regenerate_ids(
     profile: dict[str, Any],
     cards: list[dict[str, Any]],
@@ -205,6 +253,16 @@ def merge_preset_into_settings(
     profile = copy.deepcopy(preset["profile"])
     cards = copy.deepcopy(preset.get("cards", []))
     profile_name = rename_to or preset.get("name") or profile.get("name", "Imported")
+    source_prefix = preset.get("slotPrefix")
+
+    import_payload = {
+        "profile": profile,
+        "cards": cards,
+        "readable": preset.get("readable"),
+    }
+    materialize_builtin_cards(import_payload)
+    cards = import_payload["cards"]
+    _filter_assignments_for_prefix(profile, source_prefix)
 
     profiles = _profiles_list(settings)
     existing = _find_profile_by_name(profiles, profile_name)
@@ -229,9 +287,10 @@ def merge_preset_into_settings(
                 if app_id:
                     card["applicationId"] = desktop_id
 
-    from_prefix = preset.get("slotPrefix")
+    from_prefix = source_prefix
     to_prefix = _resolve_target_slot_prefix(settings, preset, target_device)
     _apply_slot_remap(profile, from_prefix, to_prefix)
+    _mirror_companion_assignments(profile, to_prefix or from_prefix, settings)
 
     card_store = _cards_list(settings)
     for card in cards:
@@ -379,6 +438,8 @@ def replace_library_with_presets(
         final_names = {p.get("name") for p in list_profiles(read_settings(db_path))}
         extra = sorted(final_names - keep_names)
         missing = sorted(keep_names - final_names)
+        if missing and any(is_system_profile_name(n) for n in final_names):
+            missing = [m for m in missing if not is_system_profile_name(m)]
         if extra or missing:
             raise RuntimeError(
                 "Replace did not stick in settings.db. "
