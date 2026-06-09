@@ -61,6 +61,20 @@ case "$ACTION" in
     echo "G Hub is fully stopped."
     _pause
     ;;
+  block-updates)
+    _banner
+    echo "Blocking G Hub automatic updates (sudo required)..."
+    echo "Keeps com.logi.ghub.updater loaded; blocks update hosts in /etc/hosts."
+    echo ""
+    python3 -m ghub_presets --folder "$PRESETS" block-updates || _fail
+    _pause
+    ;;
+  unblock-updates)
+    _banner
+    echo "Removing G Hub update block (sudo required)..."
+    python3 -m ghub_presets --folder "$PRESETS" unblock-updates || _fail
+    _pause
+    ;;
   export)
     _banner
     echo "IMPORTANT: G Hub must be quit before export reads settings.db."

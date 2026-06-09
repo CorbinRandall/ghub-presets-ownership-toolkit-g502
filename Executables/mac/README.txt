@@ -7,6 +7,11 @@ FIRST TIME:
   1. Double-click:  0 Setup (run once).command
   2. If macOS blocks it: right-click → Open → Open
 
+OPTIONAL (pin G Hub version so this toolkit keeps working):
+  0c Block G Hub Updates.command   → blocks update hosts in /etc/hosts (admin prompt)
+  0d Unblock G Hub Updates.command   → undo 0c (admin prompt)
+  Also turn off "Enable automatic updates" in G Hub Settings.
+
 EVERY TIME (quit G Hub first!):
   1 Export from G Hub.command   → saves profiles into the Presets/ folder
   2 Pull from Mouse.command     → reads what's stored on the mouse hardware
