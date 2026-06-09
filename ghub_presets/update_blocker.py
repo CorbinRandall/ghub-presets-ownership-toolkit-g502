@@ -340,9 +340,7 @@ def get_update_block_status(*, library: Path | None = None) -> UpdateBlockStatus
     state = _load_state(state_path)
     exists, running, start = _query_service()
     firewall = _list_firewall_rules()
-    block_active = bool(state and state.get("active")) or (
-        exists and start == 4 and bool(firewall)
-    )
+    block_active = bool(state and state.get("active")) or bool(firewall)
     return UpdateBlockStatus(
         platform_supported=sys.platform == "win32",
         is_admin=_is_windows_admin(),
@@ -392,18 +390,10 @@ def apply_update_block(*, library: Path | None = None) -> list[str]:
     saved_registry = _read_registry_values()
     actions: list[str] = []
     registry_written = False
-    service_disabled = False
     firewall_added = False
 
+    # Do NOT stop or disable LGHUBUpdaterService — G Hub fails to load without it.
     try:
-        if _kill_updater_process():
-            actions.append(f"taskkill {UPDATER_EXE}")
-        _stop_service()
-        actions.append(f"stop {UPDATER_SERVICE}")
-        _set_service_start(4)
-        service_disabled = True
-        actions.append(f"disable {UPDATER_SERVICE}")
-
         actions.extend(_add_firewall_rules(install_dir))
         firewall_added = True
 
@@ -421,14 +411,15 @@ def apply_update_block(*, library: Path | None = None) -> list[str]:
         }
         state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
         actions.append(f"state saved: {state_path}")
+        actions.append(
+            f"note: {UPDATER_SERVICE} left running (required for G Hub to start)"
+        )
         return actions
     except Exception:
         if registry_written:
             _restore_registry_values(saved_registry)
         if firewall_added:
             _remove_firewall_rules()
-        if service_disabled and original_start is not None:
-            _set_service_start(int(original_start))
         raise
 
 

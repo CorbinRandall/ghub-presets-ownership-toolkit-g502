@@ -9,7 +9,7 @@ FIRST TIME:
   2. Double-click:  0 Setup (run once).bat
 
 OPTIONAL (Windows — pin G Hub version so this toolkit keeps working):
-  0c Block G Hub Updates.bat        → disables LGHUBUpdaterService + firewall (admin prompt)
+  0c Block G Hub Updates.bat        → firewall + registry block (updater service stays on; admin prompt)
   0d Unblock G Hub Updates.bat      → undo 0c (admin prompt)
   Also turn off "Enable automatic updates" in G Hub Settings.
 

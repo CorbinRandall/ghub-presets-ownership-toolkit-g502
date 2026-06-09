@@ -22,8 +22,8 @@ If you run `block-updates` (or `0c Block G Hub Updates.bat`), the toolkit may mo
 
 | Target | What happens |
 |--------|----------------|
-| **`LGHUBUpdaterService`** | Stopped and set to **Disabled** (was `lghub_updater.exe --run-as-service`) |
 | **Windows Firewall** | Outbound block rules for `lghub_updater.exe` and `lghub_software_manager.exe` |
+| **`LGHUBUpdaterService`** | Left **running** — G Hub will not load if this service is disabled |
 | **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
 | **`Presets/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
 

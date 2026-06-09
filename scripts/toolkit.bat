@@ -78,7 +78,7 @@ goto :done
 
 :block_updates
 echo Blocking G Hub automatic updates (admin required)...
-echo This disables LGHUBUpdaterService and adds outbound firewall rules.
+echo This blocks updater outbound traffic via firewall (service stays running so G Hub loads).
 echo.
 %PY% -m ghub_presets --folder "%PRESETS%" block-updates
 if errorlevel 1 goto :done_fail
