@@ -16,6 +16,21 @@ This tool does **not**:
 - Store credentials or Logitech account tokens
 - Modify mouse firmware
 
+## Optional: block G Hub updates (Windows)
+
+If you run `block-updates` (or `0c Block G Hub Updates.bat`), the toolkit may modify:
+
+| Target | What happens |
+|--------|----------------|
+| **`LGHUBUpdaterService`** | Stopped and set to **Disabled** (was `lghub_updater.exe --run-as-service`) |
+| **Windows Firewall** | Outbound block rules for `lghub_updater.exe` and `lghub_software_manager.exe` |
+| **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
+| **`Presets/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
+
+Undo with `unblock-updates` or `0d Unblock G Hub Updates.bat` (admin required). Also turn off **Enable automatic updates** in G Hub’s own Settings for belt-and-suspenders protection.
+
+G Hub may still prompt for updates if you run a separate installer; this only blocks the built-in updater service and background download path the toolkit observed on Windows.
+
 ## G Hub database locations
 
 | OS | Path |

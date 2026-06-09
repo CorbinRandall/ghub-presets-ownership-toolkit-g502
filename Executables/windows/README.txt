@@ -8,6 +8,11 @@ FIRST TIME:
      Or: winget install Python.Python.3.12
   2. Double-click:  0 Setup (run once).bat
 
+OPTIONAL (Windows — pin G Hub version so this toolkit keeps working):
+  0c Block G Hub Updates.bat        → disables LGHUBUpdaterService + firewall (admin prompt)
+  0d Unblock G Hub Updates.bat      → undo 0c (admin prompt)
+  Also turn off "Enable automatic updates" in G Hub Settings.
+
 EVERY TIME:
   0b Quit G Hub (background).bat  → stop G Hub before export/import (required!)
   1 Export from G Hub.bat           → saves profiles into Presets\ (backs up settings.db first)

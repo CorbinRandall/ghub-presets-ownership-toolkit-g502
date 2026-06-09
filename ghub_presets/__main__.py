@@ -28,6 +28,11 @@ from .library import (
 )
 from .manifest import list_manifest_presets, upsert_manifest_entry
 from .paths import default_presets_dir, onboard_dir, presets_dir
+from .update_blocker import (
+    apply_update_block,
+    get_update_block_status,
+    remove_update_block,
+)
 
 
 def _library_root(folder: str | Path) -> Path:
@@ -353,6 +358,35 @@ def cmd_quit_ghub(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_block_updates(args: argparse.Namespace) -> int:
+    library = _library_root(args.folder)
+    try:
+        actions = apply_update_block(library=library)
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print("G Hub automatic updates blocked.")
+    for action in actions:
+        print(f"  {action}")
+    print()
+    print("Also disable 'Enable automatic updates' in G Hub Settings if it is still checked.")
+    print("To undo: ghub-presets unblock-updates")
+    return 0
+
+
+def cmd_unblock_updates(args: argparse.Namespace) -> int:
+    library = _library_root(args.folder)
+    try:
+        actions = remove_update_block(library=library)
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print("G Hub update block removed.")
+    for action in actions:
+        print(f"  {action}")
+    return 0
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     library = _library_root(args.folder)
     db = ghub_settings_db()
@@ -372,6 +406,10 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"  onboard/ — raw mouse backup (Pull from Mouse)")
     n = len(scan_preset_files(library))
     print(f"  {n} importable preset file(s) on disk")
+    print()
+    print("G Hub update block:")
+    for line in get_update_block_status(library=library).summary_lines():
+        print(f"  {line}")
     return 0
 
 
@@ -495,6 +533,14 @@ def build_parser() -> argparse.ArgumentParser:
         "quit-ghub",
         help="Quit G Hub and kill background agents (menu bar)",
     )
+    sub.add_parser(
+        "block-updates",
+        help="(Windows) Stop G Hub from auto-updating (admin required)",
+    )
+    sub.add_parser(
+        "unblock-updates",
+        help="(Windows) Undo block-updates (admin required)",
+    )
 
     p_compare = sub.add_parser(
         "compare",
@@ -542,6 +588,8 @@ def main(argv: list[str] | None = None) -> int:
         "status": cmd_status,
         "backup": cmd_backup,
         "quit-ghub": cmd_quit_ghub,
+        "block-updates": cmd_block_updates,
+        "unblock-updates": cmd_unblock_updates,
     }
     return handlers[args.command](args)
 

@@ -43,6 +43,8 @@ If something goes wrong, restore from `settings.db.backup-*` next to your G Hub 
 
 Logitech may change G Hub, `settings.db` format, or HID behavior at any time. This project may stop working after a G Hub update without notice. That is a normal maintenance risk, not something this project can guarantee against.
 
+On Windows, you can optionally run **`0c Block G Hub Updates.bat`** (or `ghub-presets block-updates`) to disable the `LGHUBUpdaterService` and related update checks. See [SECURITY.md](SECURITY.md). Undo with **`0d Unblock G Hub Updates.bat`** when you want updates again.
+
 ## Questions or takedown
 
 This project is intended as a legitimate local backup and portability tool for end users who own Logitech hardware. If you are a rights holder with concerns, open an issue on the repository or contact the maintainer via GitHub.
