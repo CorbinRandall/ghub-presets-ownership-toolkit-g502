@@ -16,7 +16,7 @@ OPTIONAL (pin G Hub version so this toolkit keeps working):
 
 EVERY TIME (quit G Hub first!):
   1 Export from G Hub.command   → saves profiles into the Presets/ folder
-  2 Pull from Mouse.command     → reads what's stored on the mouse hardware
+  2 Pull from Mouse.command     → reads onboard mouse profiles (auto: dongle/USB/wired)
   3 Import to G Hub.command     → adds/updates profiles from Presets/ (keeps extras in G Hub)
   4 Replace G Hub with Presets  → G Hub = Presets folder only (removes bloat, type YES)
 

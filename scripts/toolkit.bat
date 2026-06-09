@@ -110,18 +110,21 @@ explorer "%PRESETS%"
 goto :done
 
 :pull
-echo IMPORTANT: Quit G Hub and connect mouse via USB before pull.
+echo IMPORTANT: Quit G Hub first. Use USB cable or Lightspeed receiver.
 echo.
 if not exist "%PRESETS%\onboard" mkdir "%PRESETS%\onboard"
-echo Reading onboard slots 1-3 from mouse (G502)...
+%PY% -c "from ghub_presets.pull import pull_device_status_lines; print(chr(10).join(pull_device_status_lines()))" 2>nul
+echo.
+echo Reading onboard slots 1-3 (auto-detect, with fallback)...
 set "PULL_OK=0"
 for %%s in (1 2 3) do (
-  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 --raw 2>nul && set "PULL_OK=1"
-  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 2>nul && set "PULL_OK=1"
+  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device auto --raw 2>nul && set "PULL_OK=1"
+  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device auto 2>nul && set "PULL_OK=1"
 )
 echo.
 if "!PULL_OK!"=="0" (
-  echo No onboard profiles read. Check USB, quit G Hub, and G502 device.
+  echo No onboard profiles read. Quit G Hub, check USB/receiver, and enabled onboard slots.
+  echo Force a path: ghub-presets pull --slot 1 --device g502wireless-dongle
 ) else (
   echo Raw backup: %PRESETS%\onboard\
   echo G Hub-ready: %PRESETS%\onboard_slot*.lghub-preset.json

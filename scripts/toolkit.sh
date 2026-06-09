@@ -60,11 +60,16 @@ _run_update_admin() {
 case "$ACTION" in
   setup)
     _banner
-    echo "Installing Python dependencies..."
-    python3 -m pip install -e "$TOOLKIT"
+    echo "Installing Python dependencies (hidapi for Pull from Mouse)..."
+    if ! python3 -m pip install --user hidapi; then
+      echo ""
+      echo "WARNING: hidapi install failed. Export/Import/Replace still work."
+      echo "Pull from Mouse needs: python3 -m pip install --user hidapi"
+    fi
     mkdir -p "$PRESETS/onboard" "$PRESETS/_archive"
     echo ""
-    echo "Setup done. You can now use the other scripts in Executables/mac/"
+    echo "Setup done. Toolkit runs from this folder — no pip install of the repo required."
+    echo "You can now use the other scripts in Executables/mac/"
     _pause
     ;;
   backup)
@@ -113,22 +118,25 @@ case "$ACTION" in
     ;;
   pull)
     _banner
-    echo "IMPORTANT: Quit G Hub and connect mouse via USB before pull."
+    echo "IMPORTANT: Quit G Hub first. Use USB cable or Lightspeed receiver."
     echo ""
     mkdir -p "$PRESETS/onboard"
-    echo "Reading onboard slots 1–3 from mouse (G502)..."
+    python3 -c "from ghub_presets.pull import pull_device_status_lines; print('\n'.join(pull_device_status_lines()))" || true
+    echo ""
+    echo "Reading onboard slots 1–3 (auto-detect, with fallback)..."
     PULL_OK=0
     for s in 1 2 3; do
-      if python3 -m ghub_presets --folder "$PRESETS" pull --slot "$s" --device g502 --raw 2>/dev/null; then
+      if python3 -m ghub_presets --folder "$PRESETS" pull --slot "$s" --device auto --raw 2>/dev/null; then
         PULL_OK=1
       fi
-      if python3 -m ghub_presets --folder "$PRESETS" pull --slot "$s" --device g502 2>/dev/null; then
+      if python3 -m ghub_presets --folder "$PRESETS" pull --slot "$s" --device auto 2>/dev/null; then
         PULL_OK=1
       fi
     done
     echo ""
     if [[ "$PULL_OK" == "0" ]]; then
-      echo "No onboard profiles read. Check USB, quit G Hub, and G502 device."
+      echo "No onboard profiles read. Quit G Hub, check USB/receiver, and enabled onboard slots."
+      echo "Force a path: python3 -m ghub_presets pull --slot 1 --device g502wireless-dongle"
     else
       echo "Raw backup: $PRESETS/onboard/"
       echo "G Hub-ready files: $PRESETS/onboard_slot*.lghub-preset.json"

@@ -70,8 +70,8 @@ Details and recovery: [SECURITY.md](SECURITY.md). Not affiliated with Logitech â
 
 - Python 3.10+
 - [Logitech G Hub](https://www.logitechg.com/en-us/innovation/g-hub.html)
-- G502 (wired) tested; other mice need `--device` flags (see below)
-- Mouse pull: USB connection, G Hub quit, `hidapi` (installed by Setup)
+- G502 wired and Lightspeed (USB or receiver) supported; `--device auto` picks the connection
+- Mouse pull: quit G Hub, connect USB cable or Lightspeed receiver, `hidapi` (installed by Setup)
 
 ## CLI (optional)
 
@@ -81,7 +81,7 @@ ghub-presets status
 ghub-presets export --all
 ghub-presets import Presets/ --replace
 ghub-presets replace Presets/
-ghub-presets pull --slot 1 --device g502
+ghub-presets pull --slot 1 --device auto   # or g502 | g502wireless | g502wireless-dongle
 ghub-presets quit-ghub
 ghub-presets block-updates      # optional; admin/sudo required
 ghub-presets unblock-updates    # undo block

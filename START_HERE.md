@@ -87,7 +87,7 @@ cd path/to/ghub-presets
 pip install -e .
 python3 -m ghub_presets export --all
 python3 -m ghub_presets import Presets/ --replace
-python3 -m ghub_presets pull --slot 1 --device g502
+python3 -m ghub_presets pull --slot 1 --device auto
 ```
 
 ## Mouse note

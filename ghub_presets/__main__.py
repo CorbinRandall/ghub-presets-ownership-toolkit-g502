@@ -237,7 +237,7 @@ def cmd_replace(args: argparse.Namespace) -> int:
 
 
 def cmd_pull(args: argparse.Namespace) -> int:
-    from .pull import pull_to_file
+    from .pull import AUTO_PULL_DEVICE, pull_to_file, pull_to_file_resilient
 
     library = _library_root(args.folder)
     slots = list(range(1, 6)) if args.all_slots else [args.slot]
@@ -251,15 +251,26 @@ def cmd_pull(args: argparse.Namespace) -> int:
             output = presets_dir(library) / f"onboard_slot{slot}.lghub-preset.json"
 
         try:
-            path = pull_to_file(
-                args.device,
-                slot,
-                output,
-                profile_name=args.name,
-                target_platform="mac" if args.for_mac else None,
-                raw=args.raw,
-            )
-        except (RuntimeError, OSError, AssertionError) as exc:
+            if args.device == AUTO_PULL_DEVICE:
+                path, used_device = pull_to_file_resilient(
+                    args.device,
+                    slot,
+                    output,
+                    profile_name=args.name,
+                    target_platform="mac" if args.for_mac else None,
+                    raw=args.raw,
+                )
+            else:
+                path = pull_to_file(
+                    args.device,
+                    slot,
+                    output,
+                    profile_name=args.name,
+                    target_platform="mac" if args.for_mac else None,
+                    raw=args.raw,
+                )
+                used_device = args.device
+        except (RuntimeError, OSError, AssertionError, TypeError, ValueError) as exc:
             print(f"Slot {slot}: {exc}", file=sys.stderr)
             last = 1
             continue
@@ -272,7 +283,7 @@ def cmd_pull(args: argparse.Namespace) -> int:
                 preset.get("name", "?"),
                 "mouse-pull",
             )
-        print(f"Pulled onboard slot {slot} -> {path}")
+        print(f"Pulled onboard slot {slot} ({used_device}) -> {path}")
     return last
 
 
@@ -417,6 +428,11 @@ def cmd_status(args: argparse.Namespace) -> int:
     n = len(scan_preset_files(library))
     print(f"  {n} importable preset file(s) on disk")
     print()
+    from .pull import pull_device_status_lines
+
+    for line in pull_device_status_lines():
+        print(f"  {line}")
+    print()
     print("G Hub update block:")
     for line in get_update_block_status(library=library).summary_lines():
         print(f"  {line}")
@@ -502,9 +518,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_pull.add_argument(
         "--device",
-        choices=tuple(DEVICES.keys()),
-        default="g502",
-        help="Device type (g502, g502wireless, g502wireless-dongle)",
+        choices=(*DEVICES.keys(), "auto"),
+        default="auto",
+        help=(
+            "Device connection (auto tries dongle, USB wireless, then wired). "
+            "Override: g502, g502-hero, g502wireless, g502wireless-dongle"
+        ),
     )
     p_pull.add_argument("--output", help="Output preset file path")
     p_pull.add_argument("--name", help="Override imported profile name")
