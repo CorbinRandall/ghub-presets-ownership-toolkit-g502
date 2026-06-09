@@ -55,7 +55,8 @@ def _print_import_result(result) -> None:
         from .system_profile import SYSTEM_PROFILE_LABEL
 
         print(
-            f"(System profile {SYSTEM_PROFILE_LABEL!r} is in Presets/_system/ — do not delete.)"
+            f"(Factory default kept in Presets/_system/{SYSTEM_PROFILE_LABEL}.lghub-preset.json — "
+            "not shown in G Hub.)"
         )
 
 
@@ -146,6 +147,7 @@ def cmd_import(args: argparse.Namespace) -> int:
         target_platform="mac" if args.for_mac else None,
         db_path=args.db_path,
         dry_run=args.dry_run,
+        library=_library_root(args.folder),
     )
     _print_import_result(result)
     if args.dry_run:

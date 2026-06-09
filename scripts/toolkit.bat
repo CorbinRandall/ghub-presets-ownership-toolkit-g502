@@ -15,9 +15,15 @@ set "GHUB_PRESET_TOOLKIT_ROOT=%TOOLKIT%"
 set "GHUB_PRESETS_DIR=%PRESETS%"
 set "PYTHONPATH=%TOOLKIT%;%PYTHONPATH%"
 
-where python >nul 2>&1
-if errorlevel 1 (
-  echo ERROR: Python not found. Install Python 3.10+ from https://www.python.org/downloads/
+set "PY=python"
+where python >nul 2>&1 && python -c "import sys; raise SystemExit(0 if sys.version_info[:2]>=(3,10) else 1)" >nul 2>&1 || set "PY="
+if not defined PY (
+  where py >nul 2>&1 && py -3 -c "import sys; raise SystemExit(0 if sys.version_info[:2]>=(3,10) else 1)" >nul 2>&1 && set "PY=py -3"
+)
+if not defined PY (
+  echo ERROR: Python 3.10+ not found.
+  echo Install from https://www.python.org/downloads/ and check "Add python.exe to PATH"
+  echo Or run: winget install Python.Python.3.12
   pause
   exit /b 1
 )
@@ -44,7 +50,7 @@ exit /b 1
 
 :setup
 echo Installing Python dependencies...
-python -m pip install -e "%TOOLKIT%"
+%PY% -m pip install -e "%TOOLKIT%"
 if not exist "%PRESETS%\onboard" mkdir "%PRESETS%\onboard"
 echo.
 echo Setup done. Use the .bat files in Executables\windows\
@@ -52,7 +58,7 @@ goto :done
 
 :export
 if not exist "%PRESETS%" mkdir "%PRESETS%"
-python -m ghub_presets --folder "%PRESETS%" export --all
+%PY% -m ghub_presets --folder "%PRESETS%" export --all
 echo.
 echo Saved to: %PRESETS%
 explorer "%PRESETS%"
@@ -62,8 +68,8 @@ goto :done
 if not exist "%PRESETS%\onboard" mkdir "%PRESETS%\onboard"
 echo Reading onboard slots 1-3 from mouse (G502)...
 for %%s in (1 2 3) do (
-  python -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 --raw 2>nul || echo   slot %%s raw skipped
-  python -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 2>nul || echo   slot %%s skipped
+  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 --raw 2>nul || echo   slot %%s raw skipped
+  %PY% -m ghub_presets --folder "%PRESETS%" pull --slot %%s --device g502 2>nul || echo   slot %%s skipped
 )
 echo.
 echo Raw backup: %PRESETS%\onboard\
@@ -77,14 +83,19 @@ if errorlevel 1 (
   echo Run Export from G Hub first, or copy .lghub-preset.json files into Presets\
   goto :done
 )
-python -m ghub_presets --folder "%PRESETS%" import "%PRESETS%" --replace
+%PY% -m ghub_presets --folder "%PRESETS%" import "%PRESETS%" --replace
+if errorlevel 1 (
+  echo.
+  echo Import failed. Quit Logitech G Hub completely, then run again.
+  goto :done
+)
 echo.
 echo Done. Open Logitech G Hub to see your profiles.
 goto :done
 
 :replace
 echo Stopping G Hub (including background agents)...
-python -m ghub_presets quit-ghub
+%PY% -m ghub_presets quit-ghub
 if errorlevel 1 (
   echo.
   echo Could not stop G Hub. Quit from system tray, then run again.
@@ -101,14 +112,14 @@ echo   %PRESETS%
 echo.
 echo This makes G Hub match ONLY the .lghub-preset.json files in that folder.
 echo.
-python -m ghub_presets --folder "%PRESETS%" replace "%PRESETS%" --dry-run
+%PY% -m ghub_presets --folder "%PRESETS%" replace "%PRESETS%" --dry-run
 echo.
 pause
-python -m ghub_presets --folder "%PRESETS%" replace "%PRESETS%"
+%PY% -m ghub_presets --folder "%PRESETS%" replace "%PRESETS%"
 if errorlevel 1 goto :done
 echo.
 echo Success. Profiles now in G Hub:
-python -m ghub_presets list
+%PY% -m ghub_presets list
 echo.
 echo You can open Logitech G Hub now.
 goto :done

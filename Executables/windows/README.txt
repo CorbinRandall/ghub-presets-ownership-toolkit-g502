@@ -4,8 +4,9 @@ FILE TYPES (double-click these):
   .bat  = Windows batch file (runs the tool in a command window)
 
 FIRST TIME:
-  1. Double-click:  0 Setup (run once).bat
-  2. You need Python 3.10+ installed (python.org) with "Add to PATH" checked
+  1. Install Python 3.10+ (python.org — check "Add python.exe to PATH")
+     Or: winget install Python.Python.3.12
+  2. Double-click:  0 Setup (run once).bat
 
 EVERY TIME (quit G Hub first!):
   1 Export from G Hub.bat   → saves profiles into the Presets\ folder

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -14,7 +15,7 @@ GHUB_EXECUTABLE_RE = re.compile(
     r"lghub\.app[\\/]Contents[\\/]MacOS[\\/]lghub",
     re.IGNORECASE,
 )
-WINDOWS_GHUB_RE = re.compile(r"logitech.*ghub.*\.exe", re.IGNORECASE)
+WINDOWS_GHUB_RE = re.compile(r"lghub(?:_[a-z0-9]+)?\.exe", re.IGNORECASE)
 
 # Processes that hold settings.db / sync profiles (must be stopped).
 MACOS_BLOCKING_NAMES = (
@@ -75,50 +76,87 @@ def _is_blocking_process(command: str) -> bool:
     )
 
 
-def list_ghub_processes(*, blocking_only: bool = False) -> list[GHubProcess]:
-    processes: list[GHubProcess] = []
+def _filter_ghub_processes(
+    processes: list[GHubProcess],
+    *,
+    blocking_only: bool,
+) -> list[GHubProcess]:
+    if not blocking_only:
+        return processes
+    return [proc for proc in processes if _is_blocking_process(proc.command)]
 
-    if sys.platform == "win32":
+
+def _list_windows_ghub_processes() -> list[GHubProcess]:
+    """Enumerate G Hub processes on Windows (Win11-safe; wmic is deprecated)."""
+    names = ", ".join(f"'{name}'" for name in WINDOWS_QUIT_NAMES)
+    ps_script = (
+        f"$names = @({names}); "
+        "$procs = foreach ($n in $names) { "
+        "Get-CimInstance Win32_Process -Filter \"Name='$n'\" "
+        "| Select-Object ProcessId, CommandLine, Name }; "
+        "$procs | ConvertTo-Json -Compress"
+    )
+    try:
+        out = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", ps_script],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            errors="replace",
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        out = ""
+
+    processes: list[GHubProcess] = []
+    if out:
+        try:
+            data = json.loads(out)
+            if isinstance(data, dict):
+                data = [data]
+            for item in data:
+                pid = int(item.get("ProcessId", 0))
+                command = item.get("CommandLine") or item.get("Name") or ""
+                if pid and _is_ghub_process_command(command):
+                    processes.append(GHubProcess(pid=pid, command=command))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            processes = []
+
+    if processes:
+        return processes
+
+    for image_name in WINDOWS_QUIT_NAMES:
         try:
             out = subprocess.check_output(
-                ["wmic", "process", "get", "ProcessId,CommandLine", "/FORMAT:LIST"],
+                ["tasklist", "/FI", f"IMAGENAME eq {image_name}", "/FO", "CSV", "/NH"],
                 stderr=subprocess.DEVNULL,
                 text=True,
                 errors="replace",
             )
         except (subprocess.CalledProcessError, FileNotFoundError):
-            try:
-                out = subprocess.check_output(
-                    ["tasklist", "/v", "/fo", "csv"],
-                    stderr=subprocess.DEVNULL,
-                    text=True,
-                    errors="replace",
-                )
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                return []
-            lower = out.lower()
-            if "lghub" in lower:
-                processes.append(GHubProcess(pid=0, command="(see Task Manager — lghub processes)"))
-            return processes
-
-        pid = None
-        cmd_parts: list[str] = []
+            continue
         for line in out.splitlines():
-            if line.startswith("ProcessId="):
-                if pid is not None and cmd_parts:
-                    command = " ".join(cmd_parts)
-                    if _is_ghub_process_command(command):
-                        processes.append(GHubProcess(pid=pid, command=command))
-                pid = int(line.split("=", 1)[1].strip() or "0")
-                cmd_parts = []
-            elif line.startswith("CommandLine="):
-                cmd_parts.append(line.split("=", 1)[1].strip())
-        if pid is not None and cmd_parts:
-            command = " ".join(cmd_parts)
-            if _is_ghub_process_command(command):
-                processes.append(GHubProcess(pid=pid, command=command))
-        return processes
+            line = line.strip().strip('"')
+            if not line or line.startswith("INFO:"):
+                continue
+            parts = line.split('","')
+            if len(parts) < 2:
+                continue
+            image = parts[0].strip('"')
+            try:
+                pid = int(parts[1].strip('"'))
+            except ValueError:
+                continue
+            processes.append(GHubProcess(pid=pid, command=image))
+    return processes
 
+
+def list_ghub_processes(*, blocking_only: bool = False) -> list[GHubProcess]:
+    if sys.platform == "win32":
+        return _filter_ghub_processes(
+            _list_windows_ghub_processes(),
+            blocking_only=blocking_only,
+        )
+
+    processes: list[GHubProcess] = []
     try:
         out = subprocess.check_output(["ps", "-ax", "-o", "pid=,command="], text=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -137,9 +175,8 @@ def list_ghub_processes(*, blocking_only: bool = False) -> list[GHubProcess]:
             continue
         command = parts[1]
         if _is_ghub_process_command(command):
-            if not blocking_only or _is_blocking_process(command):
-                processes.append(GHubProcess(pid=pid, command=command))
-    return processes
+            processes.append(GHubProcess(pid=pid, command=command))
+    return _filter_ghub_processes(processes, blocking_only=blocking_only)
 
 
 def is_ghub_running() -> bool:

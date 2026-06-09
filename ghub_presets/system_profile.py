@@ -105,15 +105,30 @@ def ensure_system_profile_file(library: Path | None = None) -> Path:
     return dest
 
 
-def collect_import_paths(library: Path) -> list[Path]:
-    """User presets in Presets/ plus the hidden system profile."""
+def collect_user_import_paths(library: Path) -> list[Path]:
+    """User presets in Presets/ only (excludes _system factory backup)."""
     from .library import scan_user_preset_files
 
-    paths = scan_user_preset_files(library)
-    system = ensure_system_profile_file(library)
-    if system not in paths:
-        paths = sorted(set(paths) | {system})
-    return sorted(paths)
+    return scan_user_preset_files(library)
+
+
+def collect_import_paths(library: Path) -> list[Path]:
+    """Alias for user import paths — system profile is restored separately."""
+    return collect_user_import_paths(library)
+
+
+def preset_for_ghub_system_restore(preset: dict[str, Any]) -> dict[str, Any]:
+    """Use G Hub's internal default name so the profile stays hidden in the UI."""
+    out = copy.deepcopy(preset)
+    out["name"] = LEGACY_SYSTEM_PROFILE_NAME
+    if "profile" in out and isinstance(out["profile"], dict):
+        out["profile"]["name"] = LEGACY_SYSTEM_PROFILE_NAME
+    return out
+
+
+def ghub_system_profile_keep_names() -> set[str]:
+    """Profile names that must survive Replace in settings.db (G Hub internal names)."""
+    return {LEGACY_SYSTEM_PROFILE_NAME}
 
 
 def read_preset_name(path: Path) -> str:
