@@ -369,7 +369,10 @@ def cmd_block_updates(args: argparse.Namespace) -> int:
     for action in actions:
         print(f"  {action}")
     print()
-    print("LGHUBUpdaterService is left running so G Hub can start; updates are blocked via firewall.")
+    print(
+        "LGHUBUpdaterService stays running so G Hub can start; "
+        "updates are blocked via firewall, hosts file, and registry."
+    )
     print("Also disable 'Enable automatic updates' in G Hub Settings if it is still checked.")
     print("To undo: ghub-presets unblock-updates")
     return 0
