@@ -6,10 +6,12 @@ FILE TYPES (double-click these):
 FIRST TIME:
   1. Double-click:  0 Setup (run once).command
   2. If macOS blocks it: right-click → Open → Open
+  3. (Optional, for update block) 0 Setup admin sudo (once).command
+     → enter password once; Block/Unblock updates won't ask again
 
 OPTIONAL (pin G Hub version so this toolkit keeps working):
-  0c Block G Hub Updates.command   → blocks update hosts in /etc/hosts (admin prompt)
-  0d Unblock G Hub Updates.command   → undo 0c (admin prompt)
+  0c Block G Hub Updates.command   → blocks update hosts in /etc/hosts
+  0d Unblock G Hub Updates.command   → undo 0c
   Also turn off "Enable automatic updates" in G Hub Settings.
 
 EVERY TIME (quit G Hub first!):

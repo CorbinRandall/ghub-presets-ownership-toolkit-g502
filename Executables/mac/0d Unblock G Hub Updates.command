@@ -1,5 +1,11 @@
 #!/bin/bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
-TOOLKIT_SH="$SCRIPT_DIR/toolkit.sh"
-osascript -e "do shell script \"bash '$TOOLKIT_SH' unblock-updates\" with administrator privileges"
+ADMIN="/usr/local/bin/ghub-presets-admin"
+if [[ -x "$ADMIN" ]]; then
+  sudo "$ADMIN" unblock-updates
+else
+  echo "First run: double-click '0 Setup admin sudo (once).command'"
+  exit 1
+fi
+echo ""
+read -r -p "Press Enter to close..."

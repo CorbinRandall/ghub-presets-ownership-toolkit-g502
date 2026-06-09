@@ -39,6 +39,24 @@ _fail() {
   exit 1
 }
 
+_run_update_admin() {
+  local action="$1"
+  local admin="/usr/local/bin/ghub-presets-admin"
+  if [[ "$(id -u)" -eq 0 ]]; then
+    bash "$SCRIPT_DIR/ghub-admin.sh" "$action"
+    return
+  fi
+  if [[ -x "$admin" ]]; then
+    if sudo -n "$admin" "$action" 2>/dev/null; then
+      return
+    fi
+    sudo "$admin" "$action"
+    return
+  fi
+  echo "Tip: run Executables/mac/0 Setup admin sudo (once).command to skip password prompts."
+  python3 -m ghub_presets --folder "$PRESETS" "$action"
+}
+
 case "$ACTION" in
   setup)
     _banner
@@ -66,13 +84,14 @@ case "$ACTION" in
     echo "Blocking G Hub automatic updates (sudo required)..."
     echo "Keeps com.logi.ghub.updater loaded; blocks update hosts in /etc/hosts."
     echo ""
-    python3 -m ghub_presets --folder "$PRESETS" block-updates || _fail
+    _run_update_admin block-updates || _fail
     _pause
     ;;
   unblock-updates)
     _banner
     echo "Removing G Hub update block (sudo required)..."
-    python3 -m ghub_presets --folder "$PRESETS" unblock-updates || _fail
+    echo ""
+    _run_update_admin unblock-updates || _fail
     _pause
     ;;
   export)
