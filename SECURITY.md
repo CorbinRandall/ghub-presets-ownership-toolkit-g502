@@ -16,9 +16,11 @@ This tool does **not**:
 - Store credentials or Logitech account tokens
 - Modify mouse firmware
 
-## Optional: block G Hub updates (Windows)
+## Optional: block G Hub updates
 
-If you run `block-updates` (or `0c Block G Hub Updates.bat`), the toolkit may modify:
+If you run `block-updates` (or `0c Block G Hub Updates`), the toolkit may modify:
+
+### Windows
 
 | Target | What happens |
 |--------|----------------|
@@ -28,9 +30,23 @@ If you run `block-updates` (or `0c Block G Hub Updates.bat`), the toolkit may mo
 | **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
 | **`Presets/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
 
-Undo with `unblock-updates` or `0d Unblock G Hub Updates.bat` (admin required). Also turn off **Enable automatic updates** in G Hub’s own Settings for belt-and-suspenders protection.
+Use `0c` / `0d` `.bat` files or `ghub-presets block-updates` (admin required).
 
-G Hub may still prompt for updates if you run a separate installer; this only blocks the built-in updater service and background download path the toolkit observed on Windows.
+### macOS
+
+| Target | What happens |
+|--------|----------------|
+| **`/etc/hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
+| **`com.logi.ghub.updater`** | LaunchDaemon at `/Library/LaunchDaemons/com.logi.ghub.updater.plist` is kept **loaded** — do not bootout/disable or G Hub may fail to start |
+| **`Presets/_archive/ghub-update-block.json`** | Undo metadata |
+
+Use `0c` / `0d` `.command` files or `ghub-presets block-updates` (sudo / admin password required).
+
+### Both platforms
+
+Undo with `unblock-updates` or `0d`. Also turn off **Enable automatic updates** in G Hub’s own Settings.
+
+G Hub may still update if you run a separate installer; this blocks the built-in updater network path the toolkit observed.
 
 ## G Hub database locations
 

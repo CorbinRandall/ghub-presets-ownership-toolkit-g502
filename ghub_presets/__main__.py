@@ -369,10 +369,16 @@ def cmd_block_updates(args: argparse.Namespace) -> int:
     for action in actions:
         print(f"  {action}")
     print()
-    print(
-        "LGHUBUpdaterService stays running so G Hub can start; "
-        "updates are blocked via firewall, hosts file, and registry."
-    )
+    if sys.platform == "win32":
+        print(
+            "LGHUBUpdaterService stays running so G Hub can start; "
+            "updates are blocked via firewall, hosts file, and registry."
+        )
+    elif sys.platform == "darwin":
+        print(
+            "com.logi.ghub.updater stays loaded so G Hub can start; "
+            "updates are blocked via /etc/hosts."
+        )
     print("Also disable 'Enable automatic updates' in G Hub Settings if it is still checked.")
     print("To undo: ghub-presets unblock-updates")
     return 0
@@ -539,11 +545,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_parser(
         "block-updates",
-        help="(Windows) Stop G Hub from auto-updating (admin required)",
+        help="Stop G Hub from auto-updating (admin/sudo required)",
     )
     sub.add_parser(
         "unblock-updates",
-        help="(Windows) Undo block-updates (admin required)",
+        help="Undo block-updates (admin/sudo required)",
     )
 
     p_compare = sub.add_parser(
