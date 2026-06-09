@@ -21,12 +21,15 @@ from .devices import DEVICES, get_device, remap_slot_id, slot_prefix_for_model
 from .export import load_preset_file
 from .builtin_cards import materialize_builtin_cards
 from .system_profile import (
+    LEGACY_SYSTEM_PROFILE_NAME,
+    SYSTEM_PROFILE_LABEL,
     collect_import_paths,
+    collect_user_import_paths,
     ensure_system_profile_file,
-    is_system_profile_name,
-    system_profile_keep_names,
+    ghub_system_profile_keep_names,
+    is_system_preset_path,
+    preset_for_ghub_system_restore,
     user_profile_names_from_paths,
-    read_preset_name,
 )
 from .ghub_running import ensure_ghub_stopped, require_ghub_stopped
 from .paths import presets_dir
@@ -242,6 +245,65 @@ def _maybe_reconvert_for_platform(preset: dict[str, Any], target_platform: str |
     )
 
 
+def _find_desktop_system_profile(
+    profiles: list[dict[str, Any]],
+    desktop_id: str | None,
+) -> dict[str, Any] | None:
+    if not desktop_id:
+        return None
+    for profile in profiles:
+        if profile.get("applicationId") != desktop_id:
+            continue
+        if profile.get("name") in {LEGACY_SYSTEM_PROFILE_NAME, SYSTEM_PROFILE_LABEL}:
+            return profile
+        if profile.get("id") == desktop_id:
+            return profile
+    return None
+
+
+def _remove_visible_system_profile_duplicates(
+    settings: dict[str, Any],
+) -> list[str]:
+    """Drop desktop profiles wrongly named DONT_TOUCH_SYSTEM (disk-only label)."""
+    desktop_id = get_desktop_application_id(settings)
+    if not desktop_id:
+        return []
+    profiles = _profiles_list(settings)
+    removed: list[str] = []
+    for profile in list(profiles):
+        name = profile.get("name")
+        if name == SYSTEM_PROFILE_LABEL and profile.get("applicationId") == desktop_id:
+            removed.append(name)
+            _remove_profile(profiles, profile["id"])
+    return removed
+
+
+def restore_system_profile_to_settings(
+    settings: dict[str, Any],
+    library: Path,
+    *,
+    target_device: str | None = None,
+) -> bool:
+    """
+    Ensure Logitech's desktop factory default exists under PROFILE_NAME_DEFAULT.
+    The on-disk DONT_TOUCH_SYSTEM backup is never imported as a visible profile.
+    """
+    _remove_visible_system_profile_duplicates(settings)
+    path = ensure_system_profile_file(library)
+    preset = preset_for_ghub_system_restore(load_preset_file(path))
+    desktop_id = get_desktop_application_id(settings)
+    existing = _find_desktop_system_profile(_profiles_list(settings), desktop_id)
+    merged = merge_preset_into_settings(
+        settings,
+        preset,
+        conflict_mode="replace",
+        target_device=target_device,
+        preserve_ids=existing is not None,
+        profile_id=existing.get("id") if existing else None,
+    )
+    return merged is not None
+
+
 def merge_preset_into_settings(
     settings: dict[str, Any],
     preset: dict[str, Any],
@@ -249,6 +311,8 @@ def merge_preset_into_settings(
     conflict_mode: ConflictMode = "skip",
     rename_to: str | None = None,
     target_device: str | None = None,
+    preserve_ids: bool = False,
+    profile_id: str | None = None,
 ) -> str | None:
     profile = copy.deepcopy(preset["profile"])
     cards = copy.deepcopy(preset.get("cards", []))
@@ -273,7 +337,11 @@ def merge_preset_into_settings(
     if existing and conflict_mode == "replace":
         _remove_profile(profiles, existing["id"])
 
-    _regenerate_ids(profile, cards)
+    if preserve_ids:
+        if profile_id:
+            profile["id"] = profile_id
+    else:
+        _regenerate_ids(profile, cards)
 
     profile["name"] = profile_name
 
@@ -311,15 +379,18 @@ def import_presets(
     target_platform: str | None = None,
     db_path: Path | None = None,
     dry_run: bool = False,
+    library: Path | None = None,
 ) -> ImportResult:
-    require_ghub_stopped()
     if not dry_run:
+        require_ghub_stopped()
         backup_settings_db(db_path)
 
     settings = read_settings(db_path)
     result = ImportResult()
 
     for path in paths:
+        if is_system_preset_path(path):
+            continue
         preset = load_preset_file(path)
         preset = _maybe_reconvert_for_platform(preset, target_platform)
         name = rename_to or preset.get("name", path.stem)
@@ -350,7 +421,14 @@ def import_presets(
         else:
             result.imported.append(merged)
 
-    if not dry_run and (result.imported or result.replaced):
+    presets_library = library or (paths[0].parent if paths else presets_dir())
+
+    if not dry_run:
+        restore_system_profile_to_settings(
+            settings,
+            presets_library,
+            target_device=target_device,
+        )
         write_settings(settings, db_path)
 
     return result
@@ -369,20 +447,19 @@ def replace_library_with_presets(
     Make G Hub match the Presets folder: remove extra desktop mouse profiles and
     orphaned macros, then import every preset file (replace by name).
     """
-    ensure_ghub_stopped(quit_first=True)
+    if not dry_run:
+        ensure_ghub_stopped(quit_first=True)
     user_paths = collect_preset_paths(presets_dir)
     if not user_paths:
         raise FileNotFoundError(
             f"No user preset files in {presets_dir}. "
             f"Add .lghub-preset.json files (not in _system/)."
         )
-    paths = collect_import_paths(presets_dir)
+    paths = collect_user_import_paths(presets_dir)
 
-    system_path = ensure_system_profile_file(presets_dir)
     keep_names = (
         user_profile_names_from_paths(user_paths)
-        | system_profile_keep_names()
-        | {read_preset_name(system_path)}
+        | ghub_system_profile_keep_names()
     )
 
     if not dry_run:
@@ -433,13 +510,18 @@ def replace_library_with_presets(
                 result.imported.append(merged)
 
     if not dry_run:
+        restore_system_profile_to_settings(
+            settings,
+            presets_dir,
+            target_device=target_device,
+        )
         write_settings(settings, db_path)
         prepare_settings_db(db_path)
         final_names = {p.get("name") for p in list_profiles(read_settings(db_path))}
         extra = sorted(final_names - keep_names)
         missing = sorted(keep_names - final_names)
-        if missing and any(is_system_profile_name(n) for n in final_names):
-            missing = [m for m in missing if not is_system_profile_name(m)]
+        if SYSTEM_PROFILE_LABEL in final_names:
+            extra = sorted(set(extra) | {SYSTEM_PROFILE_LABEL})
         if extra or missing:
             raise RuntimeError(
                 "Replace did not stick in settings.db. "
@@ -458,7 +540,7 @@ def collect_preset_paths(target: Path, *, recursive: bool = True) -> list[Path]:
 
     resolved = target.resolve()
     if recursive and resolved == presets_dir(resolved).resolve():
-        return collect_import_paths(resolved)
+        return collect_user_import_paths(resolved)
 
     from .library import scan_user_preset_files
 

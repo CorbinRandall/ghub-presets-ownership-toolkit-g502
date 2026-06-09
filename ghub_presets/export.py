@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .db import detect_slot_prefix, list_profiles, read_settings
+from .db import detect_slot_prefix, get_desktop_application_id, list_profiles, read_settings
 from .devices import slot_prefix_for_model
 from .preset_format import FORMAT_VERSION
 from .paths import presets_dir
@@ -144,11 +144,20 @@ def export_profile_by_name(
 
 def export_all_profiles(folder: Path, *, db_path: Path | None = None) -> list[Path]:
     settings = read_settings(db_path)
+    desktop_id = get_desktop_application_id(settings)
     paths: list[Path] = []
+    system_written = False
     for profile in list_profiles(settings):
         preset = profile_to_preset(settings, profile)
         name = profile.get("name", "")
         if is_system_profile_name(name):
+            if system_written:
+                continue
+            app_id = profile.get("applicationId")
+            prof_id = profile.get("id")
+            if desktop_id and app_id != desktop_id and prof_id != desktop_id:
+                continue
+            system_written = True
             out_dir = system_presets_dir(folder)
             out_dir.mkdir(parents=True, exist_ok=True)
             path = out_dir / SYSTEM_PROFILE_FILENAME
