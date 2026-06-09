@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .paths import archive_dir, default_presets_dir
+
+MAC_STATE_DIR = Path("/Library/Application Support/ghub-presets-toolkit")
 
 STATE_FILENAME = "ghub-update-block.json"
 HOSTS_MARKER = "# GHub Preset Toolkit update block"
@@ -23,9 +26,23 @@ UPDATE_HOSTS: tuple[str, ...] = (
 )
 
 
-def state_file(library: Path | None = None) -> Path:
+def _legacy_state_file(library: Path | None = None) -> Path:
     root = library or default_presets_dir()
-    path = archive_dir(root) / STATE_FILENAME
+    return archive_dir(root) / STATE_FILENAME
+
+
+def state_file(library: Path | None = None) -> Path:
+    if sys.platform == "darwin":
+        system = MAC_STATE_DIR / STATE_FILENAME
+        legacy = _legacy_state_file(library)
+        if system.is_file():
+            return system
+        if legacy.is_file():
+            return legacy
+        system.parent.mkdir(parents=True, exist_ok=True)
+        return system
+
+    path = _legacy_state_file(library)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
