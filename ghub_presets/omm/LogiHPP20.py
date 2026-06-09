@@ -28,6 +28,7 @@ class LogiHPP20:
         """
         assert pid > 0 or name, 'error: pid or name muse be set'
         self.debug = False
+        self.wireless_receiver = False
         vid = 0x046D
         self.swid = 0xF
         self.port_short = None
@@ -62,6 +63,7 @@ class LogiHPP20:
         path_long, dev_name_hidpp, product_id = self.detect_device(list_long, name, index_list)
         assert list_long and path_long, 'error while opening device!'
         self.port_long = hid_compat.open_device(path_long)
+        self.wireless_receiver = "receiver" in self.port_long.product.lower()
         print(f'{dev_name_hidpp} pid 0x{product_id:04X} at 0x{self.device_index:02X}')
         #print('device info', self.device_index, dev_name_hidpp,'\n')
 
@@ -103,7 +105,13 @@ class LogiHPP20:
         
     @staticmethod
     def list_devices(pid = 0):
-        devs = hid.enumerate(vid = 0x046D, pid = pid)
+        try:
+            devs = hid.enumerate()
+        except TypeError:
+            devs = hid_compat.enumerate_devices(0x046D, pid or 0)
+        devs = [d for d in devs if d.get("vendor_id") == 0x046D]
+        if pid:
+            devs = [d for d in devs if d.get("product_id") == pid]
         sn = set()
         for dev in devs:
             if dev['serial_number'] not in sn:
@@ -122,9 +130,10 @@ class LogiHPP20:
         Returns:
             bool: True if "receiver" in product name
         """
-        devs = hid.enumerate(vid = 0x046D, pid = pid)
+        devs = hid_compat.enumerate_devices(0x046D, pid)
         for dev in devs:
-            if "receiver" in dev['product_string'].lower():
+            product = (dev.get("product_string") or "").lower()
+            if "receiver" in product:
                 return True
         return False
 
@@ -136,6 +145,26 @@ class LogiHPP20:
             features.append(out[4]<< 8 | out[5])
         return features
 
+    @staticmethod
+    def _normalize_hidpp_response(sent, out):
+        """Normalize HID++ readbacks; Lightspeed wireless can shift the header by one byte."""
+        if not out:
+            return None
+        sent_hdr = list(sent[:4])
+        out_list = list(out)
+        if out_list[:4] == sent_hdr:
+            return out
+        if (
+            len(out_list) >= 5
+            and out_list[0] == 0x11
+            and out_list[1] == sent_hdr[1]
+            and out_list[3] == sent_hdr[2]
+            and out_list[4] == sent_hdr[3]
+        ):
+            normalized = [out_list[0], out_list[1], out_list[3], out_list[4]] + out_list[5:]
+            return bytes((normalized + [0] * 20)[:20])
+        return None
+
     def ping_device(self, data, read_back = False):
         if self.port_short is not None and data[0] == 0x10 and len(data) <= 7:
             data = (data + [0]*7)[:7]
@@ -144,21 +173,28 @@ class LogiHPP20:
             data = (data + [0]*20)[:20]
             data[0] = 0x11
             self.port_long.write(bytes(data))
-        
+
         #RAP w/short register, read from short
         #everything else from long
         data[0] = 0x11
-        out = self.port_long.read(size = 255, timeout = 5000) if read_back else []
+        if not read_back:
+            return []
 
+        sent = bytes(data)
+        for _attempt in range(3):
+            out = self.port_long.read(size=255, timeout=5000)
+            normalized = self._normalize_hidpp_response(sent, out)
+            if normalized is not None:
+                if self.debug:
+                    print('fap ping:')
+                    print(pretty_list2(data))
+                    print(pretty_list2(normalized))
+                return normalized
         if self.debug:
             print('fap ping:')
             print(pretty_list2(data))
-            print(pretty_list2(out) if read_back else 'no readback')
-        
-        if read_back and data[:4] != list(out[:4]):
-            #print(f'error r/w hid++2 {data[:4]} {out[:4]}')
-            return None
-        return out
+            print(pretty_list2(out) if out else 'no readback')
+        return None
     
     def find_feature_index(self, val):
         if val in self.feature_index:
