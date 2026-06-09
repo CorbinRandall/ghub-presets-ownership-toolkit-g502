@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .paths import ghub_settings_db
+from .paths import archive_dir, ghub_settings_db
 
 
 def backup_settings_db(db_path: Path | None = None) -> Path:
@@ -19,6 +19,20 @@ def backup_settings_db(db_path: Path | None = None) -> Path:
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     backup = db_path.with_name(f"settings.db.backup-{stamp}")
+    shutil.copy2(db_path, backup)
+    return backup
+
+
+def backup_settings_to_archive(library: Path | None = None) -> Path:
+    """Copy settings.db into Presets/_archive/ before export/import/replace."""
+    db_path = ghub_settings_db()
+    if not db_path.exists():
+        raise FileNotFoundError(f"settings.db not found: {db_path}")
+
+    dest_dir = archive_dir(library)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    backup = dest_dir / f"settings.db.backup-{stamp}"
     shutil.copy2(db_path, backup)
     return backup
 

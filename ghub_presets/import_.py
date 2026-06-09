@@ -381,8 +381,8 @@ def import_presets(
     dry_run: bool = False,
     library: Path | None = None,
 ) -> ImportResult:
-    require_ghub_stopped()
     if not dry_run:
+        require_ghub_stopped()
         backup_settings_db(db_path)
 
     settings = read_settings(db_path)
@@ -447,7 +447,8 @@ def replace_library_with_presets(
     Make G Hub match the Presets folder: remove extra desktop mouse profiles and
     orphaned macros, then import every preset file (replace by name).
     """
-    ensure_ghub_stopped(quit_first=True)
+    if not dry_run:
+        ensure_ghub_stopped(quit_first=True)
     user_paths = collect_preset_paths(presets_dir)
     if not user_paths:
         raise FileNotFoundError(

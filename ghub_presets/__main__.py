@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from .db import ghub_settings_db, list_profiles, read_settings
+from .db import backup_settings_to_archive, ghub_settings_db, list_profiles, read_settings
 from .devices import DEVICES
 from .export import export_all_profiles, export_profile_by_name, load_preset_file
 from .ghub_running import (
@@ -16,6 +16,7 @@ from .ghub_running import (
     list_all_ghub_processes,
     list_ghub_processes,
     quit_ghub,
+    require_ghub_stopped,
 )
 from .import_ import collect_preset_paths, import_presets, replace_library_with_presets
 from .library import (
@@ -94,8 +95,23 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_backup(args: argparse.Namespace) -> int:
+    library = _library_root(args.folder)
+    try:
+        path = backup_settings_to_archive(library)
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print(f"Backed up G Hub database to: {path}")
+    return 0
+
+
 def cmd_export(args: argparse.Namespace) -> int:
-    require_ghub_stopped()
+    try:
+        require_ghub_stopped()
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     library = _library_root(args.folder)
     folder = presets_dir(library)
     folder.mkdir(parents=True, exist_ok=True)
@@ -112,7 +128,21 @@ def cmd_export(args: argparse.Namespace) -> int:
             )
             print(f"Exported: {path}")
         sync_manifest(library)
-        print(f"Done. {len(paths)} profile(s) -> {folder}")
+        print(f"Done. {len(paths)} profile(s) saved to:")
+        print(f"  {folder.resolve()}")
+        exported_names = {load_preset_file(p).get("name") for p in paths}
+        from .library import scan_user_preset_files
+
+        stale = [
+            p.name
+            for p in scan_user_preset_files(library)
+            if load_preset_file(p).get("name") not in exported_names
+        ]
+        if stale:
+            print()
+            print("Note: these Presets files were not updated (profile gone from G Hub?):")
+            for name in stale:
+                print(f"  {name}")
         return 0
 
     if not args.name:
@@ -139,7 +169,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         return 1
 
     conflict = "replace" if args.replace else ("rename" if args.rename else "skip")
-    result = import_presets(
+    try:
+        result = import_presets(
         paths,
         conflict_mode=conflict,
         rename_to=args.rename,
@@ -148,7 +179,10 @@ def cmd_import(args: argparse.Namespace) -> int:
         db_path=args.db_path,
         dry_run=args.dry_run,
         library=_library_root(args.folder),
-    )
+        )
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     _print_import_result(result)
     if args.dry_run:
         print("(dry run — settings.db not modified)")
@@ -454,6 +488,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("status", help="Show G Hub and preset paths")
     sub.add_parser(
+        "backup",
+        help="Copy settings.db to Presets/_archive/ (safe snapshot before changes)",
+    )
+    sub.add_parser(
         "quit-ghub",
         help="Quit G Hub and kill background agents (menu bar)",
     )
@@ -502,6 +540,7 @@ def main(argv: list[str] | None = None) -> int:
         "sync": cmd_sync,
         "compare": cmd_compare,
         "status": cmd_status,
+        "backup": cmd_backup,
         "quit-ghub": cmd_quit_ghub,
     }
     return handlers[args.command](args)
