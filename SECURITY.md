@@ -22,8 +22,9 @@ If you run `block-updates` (or `0c Block G Hub Updates.bat`), the toolkit may mo
 
 | Target | What happens |
 |--------|----------------|
-| **`LGHUBUpdaterService`** | Stopped and set to **Disabled** (was `lghub_updater.exe --run-as-service`) |
 | **Windows Firewall** | Outbound block rules for `lghub_updater.exe` and `lghub_software_manager.exe` |
+| **`C:\Windows\System32\drivers\etc\hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
+| **`LGHUBUpdaterService`** | Kept **automatic and running** — G Hub boot-loops if this service is disabled |
 | **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
 | **`Presets/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
 

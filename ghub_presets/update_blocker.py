@@ -18,6 +18,18 @@ UPDATER_EXE = "lghub_updater.exe"
 SOFTWARE_MANAGER_EXE = "lghub_software_manager.exe"
 STATE_FILENAME = "ghub-update-block.json"
 FIREWALL_RULE_PREFIX = "GHub Preset Toolkit - Block"
+HOSTS_FILE = Path(r"C:\Windows\System32\drivers\etc\hosts")
+HOSTS_MARKER = "# GHub Preset Toolkit update block"
+
+# From lghub_updater.exe string scan — update/pipeline hosts only (not ghub.logitech.io).
+UPDATE_HOSTS: tuple[str, ...] = (
+    "pipeline.logitech.io",
+    "updates.ghub.logitechg.com",
+    "datapipeline.logitech.io",
+    "stg-pipeline.np.logitech.io",
+    "stg-datapipeline.np.logitech.io",
+    "2pipeline.s3.amazonaws.com",
+)
 
 # Referenced by lghub_updater.exe / lghub_software_manager.exe (string scan).
 def _registry_locations() -> tuple[tuple[int, str], ...]:
@@ -57,6 +69,7 @@ class UpdateBlockStatus:
     updater_service_start: int | None
     updater_process_running: bool
     firewall_rules: list[str]
+    hosts_entries: list[str]
     registry_values: dict[str, dict[str, int | None]]
     state_file: Path | None
     block_active: bool
@@ -92,6 +105,13 @@ class UpdateBlockStatus:
                 lines.append(f"  - {rule}")
         else:
             lines.append("Toolkit firewall rules: none")
+
+        if self.hosts_entries:
+            lines.append(f"Toolkit hosts blocks: {len(self.hosts_entries)}")
+            for host in self.hosts_entries:
+                lines.append(f"  - {host}")
+        else:
+            lines.append("Toolkit hosts blocks: none")
 
         if self.block_active:
             lines.append(f"Toolkit update block: ACTIVE (since {self.block_applied_at or 'unknown'})")
@@ -175,13 +195,27 @@ def _set_service_start(start_type: int) -> None:
         raise RuntimeError(f"Could not configure {UPDATER_SERVICE}: {detail}")
 
 
-def _stop_service() -> None:
-    _run_command(["sc.exe", "stop", UPDATER_SERVICE])
+def _start_service() -> None:
+    _run_command(["sc.exe", "start", UPDATER_SERVICE])
 
 
-def _kill_updater_process() -> bool:
-    proc = _run_command(["taskkill", "/IM", UPDATER_EXE, "/F"])
-    return proc.returncode == 0
+def _ensure_updater_service_ready() -> list[str]:
+    """G Hub needs LGHUBUpdaterService running; disabled startup causes a boot loop."""
+    actions: list[str] = []
+    exists, running, start = _query_service()
+    if not exists:
+        return actions
+
+    if start == 4:
+        _set_service_start(2)
+        actions.append(f"restore {UPDATER_SERVICE} startup=automatic (was disabled)")
+        start = 2
+
+    if not running:
+        _start_service()
+        actions.append(f"start {UPDATER_SERVICE}")
+
+    return actions
 
 
 def _read_registry_values() -> dict[str, dict[str, int | None]]:
@@ -309,6 +343,60 @@ def _add_firewall_rules(install_dir: Path) -> list[str]:
     return actions
 
 
+def _list_hosts_entries() -> list[str]:
+    if not HOSTS_FILE.is_file():
+        return []
+    active: list[str] = []
+    for line in HOSTS_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+        if HOSTS_MARKER not in line:
+            continue
+        parts = line.split()
+        if len(parts) >= 2 and parts[1] in UPDATE_HOSTS:
+            active.append(parts[1])
+    return sorted(set(active))
+
+
+def _add_hosts_entries() -> list[str]:
+    if not HOSTS_FILE.is_file():
+        raise RuntimeError(f"Hosts file not found: {HOSTS_FILE}")
+
+    lines = HOSTS_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+    existing = _list_hosts_entries()
+    actions: list[str] = []
+    for host in UPDATE_HOSTS:
+        if host in existing:
+            continue
+        lines.append(f"127.0.0.1 {host} {HOSTS_MARKER}")
+        actions.append(f"hosts block {host}")
+
+    if actions:
+        text = "\n".join(lines).rstrip() + "\n"
+        HOSTS_FILE.write_text(text, encoding="utf-8")
+    return actions
+
+
+def _remove_hosts_entries() -> list[str]:
+    if not HOSTS_FILE.is_file():
+        return []
+
+    actions: list[str] = []
+    kept: list[str] = []
+    for line in HOSTS_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+        if HOSTS_MARKER in line:
+            parts = line.split()
+            if len(parts) >= 2:
+                actions.append(f"hosts remove {parts[1]}")
+            continue
+        kept.append(line)
+
+    if actions:
+        text = "\n".join(kept).rstrip()
+        if text:
+            text += "\n"
+        HOSTS_FILE.write_text(text, encoding="utf-8")
+    return actions
+
+
 def _remove_firewall_rules() -> list[str]:
     actions: list[str] = []
     for rule_name in _firewall_rule_names():
@@ -340,9 +428,8 @@ def get_update_block_status(*, library: Path | None = None) -> UpdateBlockStatus
     state = _load_state(state_path)
     exists, running, start = _query_service()
     firewall = _list_firewall_rules()
-    block_active = bool(state and state.get("active")) or (
-        exists and start == 4 and bool(firewall)
-    )
+    hosts = _list_hosts_entries()
+    block_active = bool(state and state.get("active")) or bool(firewall) or bool(hosts)
     return UpdateBlockStatus(
         platform_supported=sys.platform == "win32",
         is_admin=_is_windows_admin(),
@@ -352,6 +439,7 @@ def get_update_block_status(*, library: Path | None = None) -> UpdateBlockStatus
         updater_service_start=start,
         updater_process_running=_updater_process_running(),
         firewall_rules=firewall,
+        hosts_entries=hosts,
         registry_values=_read_registry_values(),
         state_file=state_path if state_path.is_file() else None,
         block_active=block_active,
@@ -392,20 +480,19 @@ def apply_update_block(*, library: Path | None = None) -> list[str]:
     saved_registry = _read_registry_values()
     actions: list[str] = []
     registry_written = False
-    service_disabled = False
     firewall_added = False
+    hosts_added = False
 
+    # Layered block: keep updater service running, cut its network paths.
+    # Disabling the service prevents G Hub from loading (boot loop).
     try:
-        if _kill_updater_process():
-            actions.append(f"taskkill {UPDATER_EXE}")
-        _stop_service()
-        actions.append(f"stop {UPDATER_SERVICE}")
-        _set_service_start(4)
-        service_disabled = True
-        actions.append(f"disable {UPDATER_SERVICE}")
+        actions.extend(_ensure_updater_service_ready())
 
         actions.extend(_add_firewall_rules(install_dir))
         firewall_added = True
+
+        actions.extend(_add_hosts_entries())
+        hosts_added = True
 
         actions.extend(_write_registry_values(REGISTRY_DISABLE_VALUES))
         registry_written = True
@@ -417,18 +504,22 @@ def apply_update_block(*, library: Path | None = None) -> list[str]:
             "serviceStartType": original_start,
             "registry": saved_registry,
             "firewallRules": _firewall_rule_names(),
+            "hosts": list(UPDATE_HOSTS),
             "toolkitVersion": "1.0.0",
         }
         state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
         actions.append(f"state saved: {state_path}")
+        actions.append(
+            f"note: {UPDATER_SERVICE} stays automatic/running; updates blocked via firewall + hosts"
+        )
         return actions
     except Exception:
         if registry_written:
             _restore_registry_values(saved_registry)
+        if hosts_added:
+            _remove_hosts_entries()
         if firewall_added:
             _remove_firewall_rules()
-        if service_disabled and original_start is not None:
-            _set_service_start(int(original_start))
         raise
 
 
@@ -447,14 +538,16 @@ def remove_update_block(*, library: Path | None = None) -> list[str]:
     state = _load_state(state_path)
     actions: list[str] = []
 
-    exists, _, _ = _query_service()
-    if exists:
-        start_type = 2
-        if state and state.get("serviceStartType") is not None:
-            start_type = int(state["serviceStartType"])
-        _set_service_start(start_type)
-        actions.append(f"restore {UPDATER_SERVICE} startup={SERVICE_START_TYPES.get(start_type, start_type)}")
+    exists, _, current_start = _query_service()
+    if exists and state and state.get("serviceStartType") is not None:
+        start_type = int(state["serviceStartType"])
+        if current_start != start_type:
+            _set_service_start(start_type)
+            actions.append(
+                f"restore {UPDATER_SERVICE} startup={SERVICE_START_TYPES.get(start_type, start_type)}"
+            )
 
+    actions.extend(_remove_hosts_entries())
     actions.extend(_remove_firewall_rules())
 
     if state and state.get("registry"):
