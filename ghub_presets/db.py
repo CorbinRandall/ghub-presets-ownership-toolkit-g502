@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .paths import archive_dir, ghub_settings_db
+from .paths import archive_dir, ensure_toolkit_data_dirs, ghub_settings_db
 
 
 def backup_settings_db(db_path: Path | None = None) -> Path:
@@ -24,7 +24,8 @@ def backup_settings_db(db_path: Path | None = None) -> Path:
 
 
 def backup_settings_to_archive(library: Path | None = None) -> Path:
-    """Copy settings.db into Presets/_archive/ before export/import/replace."""
+    """Copy settings.db into Toolkit Data/archive/ before export/import/replace."""
+    ensure_toolkit_data_dirs(library)
     db_path = ghub_settings_db()
     if not db_path.exists():
         raise FileNotFoundError(f"settings.db not found: {db_path}")

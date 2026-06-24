@@ -27,7 +27,7 @@ from .library import (
     sync_manifest,
 )
 from .manifest import list_manifest_presets, upsert_manifest_entry
-from .paths import PRESETS_DIR_NAME, default_presets_dir, onboard_dir, presets_dir
+from .paths import PRESETS_DIR_NAME, TOOLKIT_DATA_DIR_NAME, default_presets_dir, onboard_dir, presets_dir
 from .update_blocker import (
     apply_update_block,
     get_update_block_status,
@@ -61,7 +61,7 @@ def _print_import_result(result) -> None:
         from .system_profile import SYSTEM_PROFILE_LABEL
 
         print(
-            f"(Factory default kept in {PRESETS_DIR_NAME}/_system/{SYSTEM_PROFILE_LABEL}.lghub-preset.json — "
+            f"(Factory default kept in {TOOLKIT_DATA_DIR_NAME}/system/{SYSTEM_PROFILE_LABEL}.lghub-preset.json — "
             "not shown in G Hub.)"
         )
 
@@ -76,7 +76,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         if not paths:
             print(f"No presets in {library}")
             return 0
-        print(f"(DONT_TOUCH_SYSTEM is kept in {PRESETS_DIR_NAME}/_system/ — not shown here.)")
+        print(f"(DONT_TOUCH_SYSTEM is kept in {TOOLKIT_DATA_DIR_NAME}/system/ — not shown here.)")
         print()
         for path in paths:
             try:
@@ -424,7 +424,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"settings.db: {db} ({'exists' if db.exists() else 'missing'})")
     print(f"Presets folder: {library}")
     print(f"  Put .lghub-preset.json files here (or use Export)")
-    print(f"  onboard/ — raw mouse backup (Pull from Mouse)")
+    print(f"  {TOOLKIT_DATA_DIR_NAME}/onboard/ — raw mouse backup (Pull from Mouse)")
     n = len(scan_preset_files(library))
     print(f"  {n} importable preset file(s) on disk")
     print()
@@ -550,13 +550,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_sync.add_argument(
         "--organize",
         action="store_true",
-        help="Move loose files into profiles/, onboard/, reference/, _archive/",
+        help=f"Move loose files into {PRESETS_DIR_NAME}/, {TOOLKIT_DATA_DIR_NAME}/onboard/, or archive/",
     )
 
     sub.add_parser("status", help="Show G Hub and preset paths")
     sub.add_parser(
         "backup",
-        help=f"Copy settings.db to {PRESETS_DIR_NAME}/_archive/ (safe snapshot before changes)",
+        help=f"Copy settings.db to {TOOLKIT_DATA_DIR_NAME}/archive/ (safe snapshot before changes)",
     )
     sub.add_parser(
         "quit-ghub",

@@ -14,20 +14,12 @@ venv/
 .DS_Store
 Thumbs.db
 
-# --- Personal preset library (never commit your mouse profiles) ---
+# --- User preset library (never commit your mouse profiles) ---
 Put Presets Here/*.lghub-preset.json
 Put Presets Here/onboard_slot*.lghub-preset.json
 Put Presets Here/manifest.json
-Put Presets Here/_system/*.json
-Put Presets Here/onboard/**
-!Put Presets Here/onboard/.gitkeep
-Put Presets Here/_archive/**
-Put Presets Here/reference/**
 
-# Keep _system warning (folder name is the main label — no README at preset root)
-!Put Presets Here/_system/README.txt
-
-# Legacy folder name (users who have not renamed yet)
+# Legacy preset folder name
 Presets/*.lghub-preset.json
 Presets/onboard_slot*.lghub-preset.json
 Presets/manifest.json
@@ -35,3 +27,21 @@ Presets/_system/*.json
 Presets/onboard/**
 Presets/_archive/**
 Presets/reference/**
+
+# --- Toolkit-managed data (not user presets) ---
+Toolkit Data/system/*.json
+Toolkit Data/onboard/**
+!Toolkit Data/onboard/.gitkeep
+Toolkit Data/archive/**
+Toolkit Data/reference/**
+
+!Toolkit Data/system/README.txt
+
+# Legacy paths under preset folder (auto-migrated to Toolkit Data/)
+Put Presets Here/_system/**
+Put Presets Here/onboard/**
+Put Presets Here/_archive/**
+Put Presets Here/reference/**
+
+# Keep empty preset folder in git
+!Put Presets Here/.gitkeep

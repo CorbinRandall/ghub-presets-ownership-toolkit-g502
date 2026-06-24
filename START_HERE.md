@@ -40,7 +40,7 @@ Already ran Setup before? Re-run it, or in Terminal: `xattr -dr com.apple.quaran
 | Step | Mac (double-click) | Windows (double-click) | What it does |
 |------|-------------------|------------------------|--------------|
 | **1. Export** | `1 Export from G Hub.command` | `1 Export from G Hub.bat` | Copies all G Hub profiles → **`Put Presets Here/`** folder |
-| **2. Pull** | `2 Pull from Mouse.command` | `2 Pull from Mouse.bat` | Reads profiles stored **on the mouse** → `Put Presets Here/` + `Put Presets Here/onboard/` |
+| **2. Pull** | `2 Pull from Mouse.command` | `2 Pull from Mouse.bat` | Reads profiles on the **mouse** → importable files in `Put Presets Here/`; raw backup in `Toolkit Data/onboard/` |
 | **3. Import** | `3 Import to G Hub.command` | `3 Import to G Hub.bat` | Adds/updates profiles from **`Put Presets Here/`** (keeps extra G Hub profiles) |
 | **4. Replace** | `4 Replace G Hub with Presets.command` | `4 Replace G Hub with Presets.bat` | **Wipes bloat** — G Hub will match **`Put Presets Here/`** only (removes other desktop profiles + old macros) |
 
@@ -56,7 +56,8 @@ Then **open G Hub** again.
 
 ```
 ghub-presets/
-  Put Presets Here/     ← YOUR PROFILES (starts empty; edit like normal files)
+  Put Presets Here/     ← YOUR PROFILES (starts empty; .lghub-preset.json only)
+  Toolkit Data/         ← toolkit-managed (system profile, raw pulls, DB backups)
   Executables/
     mac/                ← .command files (Mac)
     windows/            ← .bat files (Windows)
@@ -64,7 +65,7 @@ ghub-presets/
 
 Each `Something.lghub-preset.json` in **`Put Presets Here/`** = one of your profiles in G Hub.
 
-**Ignore `Put Presets Here/_system/`** — that holds `DONT_TOUCH_SYSTEM` (Logitech’s required factory default). The toolkit keeps it automatically; you don’t edit or delete it.
+**Do not edit `Toolkit Data/`** — the toolkit stores `DONT_TOUCH_SYSTEM`, raw mouse pulls, and automatic `settings.db` backups there.
 
 ## File types (noob cheat sheet)
 
