@@ -453,7 +453,7 @@ def replace_library_with_presets(
     if not user_paths:
         raise FileNotFoundError(
             f"No user preset files in {presets_dir}. "
-            f"Add .lghub-preset.json files (not in _system/)."
+            f"Add .lghub-preset.json files to {presets_dir.name}/."
         )
     paths = collect_user_import_paths(presets_dir)
 

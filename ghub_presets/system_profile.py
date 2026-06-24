@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .paths import presets_dir
+from .paths import TOOLKIT_DATA_DIR_NAME, ensure_toolkit_data_dirs, system_dir
 from .preset_format import FORMAT_VERSION
 
 # Shown in G Hub and on disk — makes it obvious not to delete.
@@ -30,16 +30,16 @@ def is_system_profile_name(name: str | None) -> bool:
 
 
 def is_system_preset_path(path: Path) -> bool:
-    return path.parent.name == "_system" and path.suffix == ".json"
-
-
-def system_profile_keep_names() -> set[str]:
-    """Profile names that must survive Replace (old + new labels)."""
-    return set(_LEGACY_NAMES)
+    if path.suffix != ".json":
+        return False
+    parent = path.parent
+    if parent.name == "_system":
+        return True
+    return parent.name == "system" and parent.parent.name == TOOLKIT_DATA_DIR_NAME
 
 
 def system_presets_dir(library: Path | None = None) -> Path:
-    return presets_dir(library) / "_system"
+    return system_dir(library)
 
 
 def bundled_system_profile_path() -> Path:
@@ -74,9 +74,9 @@ def _migrate_legacy_system_file(dest_dir: Path) -> Path | None:
 
 
 def ensure_system_profile_file(library: Path | None = None) -> Path:
-    """Ensure Presets/_system/DONT_TOUCH_SYSTEM.lghub-preset.json exists."""
+    """Ensure Toolkit Data/system/DONT_TOUCH_SYSTEM.lghub-preset.json exists."""
+    ensure_toolkit_data_dirs(library)
     dest_dir = system_presets_dir(library)
-    dest_dir.mkdir(parents=True, exist_ok=True)
     migrated = _migrate_legacy_system_file(dest_dir)
     if migrated:
         return migrated

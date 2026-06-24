@@ -28,7 +28,7 @@ If you run `block-updates` (or `0c Block G Hub Updates`), the toolkit may modify
 | **`C:\Windows\System32\drivers\etc\hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
 | **`LGHUBUpdaterService`** | Kept **automatic and running** — G Hub boot-loops if this service is disabled |
 | **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
-| **`Put Presets Here/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
+| **`Toolkit Data/archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
 
 Use `0c` / `0d` `.bat` files or `ghub-presets block-updates` (admin required).
 
@@ -38,7 +38,7 @@ Use `0c` / `0d` `.bat` files or `ghub-presets block-updates` (admin required).
 |--------|----------------|
 | **`/etc/hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
 | **`com.logi.ghub.updater`** | LaunchDaemon at `/Library/LaunchDaemons/com.logi.ghub.updater.plist` is kept **loaded** — do not bootout/disable or G Hub may fail to start |
-| **`Put Presets Here/_archive/ghub-update-block.json`** | Undo metadata |
+| **`Toolkit Data/archive/ghub-update-block.json`** | Undo metadata |
 
 Use `0c` / `0d` `.command` files or `ghub-presets block-updates` (sudo / admin password required).
 

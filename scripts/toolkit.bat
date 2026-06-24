@@ -10,6 +10,7 @@ set "ACTION=%~1"
 set "TOOLKIT=%~dp0.."
 for %%I in ("%TOOLKIT%") do set "TOOLKIT=%%~fI"
 set "PRESETS=%TOOLKIT%\Put Presets Here"
+set "TOOLKIT_DATA=%TOOLKIT%\Toolkit Data"
 
 set "GHUB_PRESET_TOOLKIT_ROOT=%TOOLKIT%"
 set "GHUB_PRESETS_DIR=%PRESETS%"
@@ -58,8 +59,7 @@ if errorlevel 1 (
   echo Setup failed. Check Python and internet connection.
   goto :done_fail
 )
-if not exist "%PRESETS%\onboard" mkdir "%PRESETS%\onboard"
-if not exist "%PRESETS%\_archive" mkdir "%PRESETS%\_archive"
+%PY% -c "from ghub_presets.paths import ensure_toolkit_data_dirs; ensure_toolkit_data_dirs()"
 echo.
 echo Setup done. Use the .bat files in Executables\windows\
 goto :done
@@ -112,7 +112,7 @@ goto :done
 :pull
 echo IMPORTANT: Quit G Hub first. Use USB cable or Lightspeed receiver.
 echo.
-if not exist "%PRESETS%\onboard" mkdir "%PRESETS%\onboard"
+%PY% -c "from ghub_presets.paths import ensure_toolkit_data_dirs; ensure_toolkit_data_dirs()"
 %PY% -c "from ghub_presets.pull import pull_device_status_lines; print(chr(10).join(pull_device_status_lines()))" 2>nul
 echo.
 echo Reading onboard slots 1-3 (auto-detect, with fallback)...
@@ -126,7 +126,7 @@ if "!PULL_OK!"=="0" (
   echo No onboard profiles read. Quit G Hub, check USB/receiver, and enabled onboard slots.
   echo Force a path: ghub-presets pull --slot 1 --device g502wireless-dongle
 ) else (
-  echo Raw backup: %PRESETS%\onboard\
+  echo Raw backup: %TOOLKIT_DATA%\onboard\
   echo G Hub-ready: %PRESETS%\onboard_slot*.lghub-preset.json
 )
 explorer "%PRESETS%"

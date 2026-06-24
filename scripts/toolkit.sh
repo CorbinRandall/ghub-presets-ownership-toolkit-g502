@@ -8,6 +8,7 @@ shift || true
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLKIT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PRESETS="$TOOLKIT/Put Presets Here"
+TOOLKIT_DATA="$TOOLKIT/Toolkit Data"
 
 export GHUB_PRESET_TOOLKIT_ROOT="$TOOLKIT"
 export GHUB_PRESETS_DIR="$PRESETS"
@@ -89,7 +90,7 @@ case "$ACTION" in
       echo "WARNING: hidapi install failed. Export/Import/Replace still work."
       echo "Pull from Mouse needs: python3 -m pip install --user hidapi"
     fi
-    mkdir -p "$PRESETS/onboard" "$PRESETS/_archive"
+    python3 -c "from ghub_presets.paths import ensure_toolkit_data_dirs; ensure_toolkit_data_dirs()"
     echo ""
     echo "Setup done. Toolkit runs from this folder — no pip install of the repo required."
     echo "You can now use the other scripts in Executables/mac/"
@@ -143,7 +144,7 @@ case "$ACTION" in
     _banner
     echo "IMPORTANT: Quit G Hub first. Use USB cable or Lightspeed receiver."
     echo ""
-    mkdir -p "$PRESETS/onboard"
+    python3 -c "from ghub_presets.paths import ensure_toolkit_data_dirs; ensure_toolkit_data_dirs()"
     python3 -c "from ghub_presets.pull import pull_device_status_lines; print('\n'.join(pull_device_status_lines()))" || true
     echo ""
     echo "Reading onboard slots 1–3 (auto-detect, with fallback)..."
@@ -161,7 +162,7 @@ case "$ACTION" in
       echo "No onboard profiles read. Quit G Hub, check USB/receiver, and enabled onboard slots."
       echo "Force a path: python3 -m ghub_presets pull --slot 1 --device g502wireless-dongle"
     else
-      echo "Raw backup: $PRESETS/onboard/"
+      echo "Raw backup: $TOOLKIT_DATA/onboard/"
       echo "G Hub-ready files: $PRESETS/onboard_slot*.lghub-preset.json"
     fi
     open "$PRESETS" 2>/dev/null || true

@@ -24,6 +24,7 @@ Works on **macOS** and **Windows**. Noob-friendly double-click scripts included.
 ghub-presets/
 ├── START_HERE.md
 ├── Put Presets Here/   ← your profiles (starts empty; gitignored once exported)
+├── Toolkit Data/       ← system profile, raw pulls, DB backups (toolkit-managed)
 ├── Executables/
 │   ├── mac/              ← .command files
 │   └── windows/          ← .bat files

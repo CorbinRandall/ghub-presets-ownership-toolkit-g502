@@ -9,7 +9,7 @@ from typing import Any
 
 from .export import load_preset_file, write_preset_file
 from .manifest import load_manifest, remove_manifest_entry, save_manifest
-from .paths import archive_dir, default_presets_dir, onboard_dir, profiles_dir, reference_dir
+from .paths import archive_dir, default_presets_dir, ensure_toolkit_data_dirs, onboard_dir, profiles_dir, reference_dir
 
 
 def _relative_manifest_key(folder: Path, path: Path) -> str:
@@ -107,7 +107,8 @@ def remove_preset(path: Path, library: Path | None = None) -> None:
 
 
 def organize_library(library: Path | None = None) -> list[str]:
-    """Tidy Presets/: move tests to _archive/, raw pulls to onboard/."""
+    """Tidy preset folder: move tests to archive/, raw pulls to onboard/."""
+    ensure_toolkit_data_dirs(library)
     library = (library or default_presets_dir()).resolve()
     onboard = onboard_dir(library)
     reference = reference_dir(library)

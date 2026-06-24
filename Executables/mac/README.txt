@@ -12,3 +12,4 @@ Mac-only tips:
 
 Quit G Hub first, then run 1 Export, 2 Pull, 3 Import, or 4 Replace.
 Profiles save to: ../../Put Presets Here/
+Raw mouse backups: ../../Toolkit Data/onboard/
