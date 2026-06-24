@@ -29,7 +29,9 @@ Or download ZIP from [github.com/CorbinRandall/ghub-presets](https://github.com/
 |-----|---------|
 | Double-click `Executables/mac/0 Setup (run once).command` | Double-click `Executables/windows/0 Setup (run once).bat` |
 
-If Mac says the file is from an unidentified developer: **right-click → Open → Open**.
+If Mac says the file is from an unidentified developer: **right-click → Open → Open** (once for Setup only). Setup then clears the download flag on all other `.command` files so you do not approve each one in Settings.
+
+Already ran Setup before? Re-run it, or in Terminal: `xattr -dr com.apple.quarantine Executables/mac`
 
 ## The three things you’ll do
 

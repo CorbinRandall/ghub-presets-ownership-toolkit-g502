@@ -39,6 +39,27 @@ _fail() {
   exit 1
 }
 
+# Downloaded .command files get com.apple.quarantine; macOS blocks each one until
+# approved in Settings. Running Setup once clears quarantine on all Mac shortcuts.
+_clear_mac_quarantine() {
+  local mac_exe="$TOOLKIT/Executables/mac"
+  [[ -d "$mac_exe" ]] || return 0
+  local cleared=0
+  local f
+  for f in "$mac_exe"/*.command; do
+    [[ -f "$f" ]] || continue
+    if xattr -l "$f" 2>/dev/null | grep -q com.apple.quarantine; then
+      xattr -d com.apple.quarantine "$f" 2>/dev/null || true
+      cleared=$((cleared + 1))
+    fi
+    chmod +x "$f" 2>/dev/null || true
+  done
+  if [[ "$cleared" -gt 0 ]]; then
+    echo "Cleared macOS download quarantine on $cleared Mac shortcut(s)."
+    echo "You can double-click the other .command files without approving each in Settings."
+  fi
+}
+
 _run_update_admin() {
   local action="$1"
   local admin="/usr/local/bin/ghub-presets-admin"
@@ -60,6 +81,8 @@ _run_update_admin() {
 case "$ACTION" in
   setup)
     _banner
+    _clear_mac_quarantine
+    echo ""
     echo "Installing Python dependencies (hidapi for Pull from Mouse)..."
     if ! python3 -m pip install --user hidapi; then
       echo ""
