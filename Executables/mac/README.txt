@@ -5,7 +5,8 @@ FILE TYPES (double-click these):
 
 FIRST TIME:
   1. Double-click:  0 Setup (run once).command
-  2. If macOS blocks it: right-click → Open → Open
+  2. If macOS blocks it: right-click → Open → Open (only needed for this one file)
+     Setup clears download quarantine on all other .command files automatically.
   3. (Optional, for update block) 0 Setup admin sudo (once).command
      → enter password once; Block/Unblock updates won't ask again
 
