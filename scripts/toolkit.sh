@@ -7,7 +7,7 @@ shift || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLKIT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PRESETS="$TOOLKIT/Presets"
+PRESETS="$TOOLKIT/Put Presets Here"
 
 export GHUB_PRESET_TOOLKIT_ROOT="$TOOLKIT"
 export GHUB_PRESETS_DIR="$PRESETS"
@@ -173,7 +173,7 @@ case "$ACTION" in
     echo ""
     if ! ls "$PRESETS"/*.lghub-preset.json >/dev/null 2>&1; then
       echo "No preset files in $PRESETS"
-      echo "Run 'Export from G Hub' first, or copy .lghub-preset.json files into Presets/"
+      echo "Run 'Export from G Hub' first, or copy .lghub-preset.json files into Put Presets Here/"
       _fail
     fi
     python3 -m ghub_presets --folder "$PRESETS" backup || _fail

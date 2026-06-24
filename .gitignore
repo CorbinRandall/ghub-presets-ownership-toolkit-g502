@@ -15,15 +15,23 @@ venv/
 Thumbs.db
 
 # --- Personal preset library (never commit your mouse profiles) ---
+Put Presets Here/*.lghub-preset.json
+Put Presets Here/onboard_slot*.lghub-preset.json
+Put Presets Here/manifest.json
+Put Presets Here/_system/*.json
+Put Presets Here/onboard/**
+!Put Presets Here/onboard/.gitkeep
+Put Presets Here/_archive/**
+Put Presets Here/reference/**
+
+# Keep _system warning (folder name is the main label — no README at preset root)
+!Put Presets Here/_system/README.txt
+
+# Legacy folder name (users who have not renamed yet)
 Presets/*.lghub-preset.json
 Presets/onboard_slot*.lghub-preset.json
 Presets/manifest.json
 Presets/_system/*.json
 Presets/onboard/**
-!Presets/onboard/.gitkeep
 Presets/_archive/**
 Presets/reference/**
-
-# Keep folder docs / structure
-!Presets/README.txt
-!Presets/_system/README.txt

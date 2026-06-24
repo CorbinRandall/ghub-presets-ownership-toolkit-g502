@@ -14,7 +14,7 @@ This tool reads and writes files **on your computer**:
 
 - Logitech G Hub’s local `settings.db` database
 - Optional HID++ communication with **your** USB mouse hardware
-- JSON preset files in the `Presets/` folder you control
+- JSON preset files in the `Put Presets Here/` folder you control
 
 It does **not** connect to Logitech cloud accounts, Logitech servers, or online sync services. Your presets stay local unless **you** copy them elsewhere.
 
@@ -35,7 +35,7 @@ Before **Import** or **Replace**:
 
 1. **Quit Logitech G HUB completely** (including the menu bar / system tray background agent).
 2. **Back up** `settings.db` — the toolkit creates timestamped backups on write; keep your own copy too.
-3. **Export** your current profiles to `Presets/` so you can roll back.
+3. **Export** your current profiles to `Put Presets Here/` so you can roll back.
 
 If something goes wrong, restore from `settings.db.backup-*` next to your G Hub data folder (see [SECURITY.md](SECURITY.md)).
 

@@ -27,7 +27,7 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
-# Show what will be committed (personal Presets/ are gitignored)
+# Show what will be committed (personal Put Presets Here/ files are gitignored)
 echo "Files to publish (personal presets are excluded):"
 git status --short
 echo ""
@@ -40,7 +40,7 @@ if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git status --por
     git commit -m "$(cat <<'EOF'
 Release public G Hub Preset Toolkit.
 
-Double-click Executables, Presets folder workflow, replace/sync,
+Double-click Executables, Put Presets Here workflow, replace/sync,
 background G Hub quit, and hidden DONT_TOUCH_SYSTEM profile.
 EOF
 )"

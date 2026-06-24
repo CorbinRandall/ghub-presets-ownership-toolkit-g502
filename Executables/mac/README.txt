@@ -1,27 +1,14 @@
-G Hub Preset Toolkit — Mac
+G Hub Preset Toolkit — Mac shortcuts (.command files)
 
-FILE TYPES (double-click these):
-  .command  = Mac shortcut (opens Terminal, runs the tool)
+Full guide: ../../START_HERE.md
 
-FIRST TIME:
-  1. Double-click:  0 Setup (run once).command
-  2. If macOS blocks it: right-click → Open → Open (only needed for this one file)
-     Setup clears download quarantine on all other .command files automatically.
-  3. (Optional, for update block) 0 Setup admin sudo (once).command
-     → enter password once; Block/Unblock updates won't ask again
+First time:
+  0 Setup (run once).command
+  If macOS blocks it: right-click → Open → Open (once). Setup clears quarantine on the other shortcuts.
 
-OPTIONAL (pin G Hub version so this toolkit keeps working):
-  0c Block G Hub Updates.command   → blocks update hosts in /etc/hosts
-  0d Unblock G Hub Updates.command   → undo 0c
-  Also turn off "Enable automatic updates" in G Hub Settings.
+Mac-only tips:
+  0 Setup admin sudo (once).command — optional; Block/Unblock updates won't ask for password again
+  0c / 0d — block or undo G Hub auto-updates (also turn off updates in G Hub Settings)
 
-EVERY TIME (quit G Hub first!):
-  1 Export from G Hub.command   → saves profiles into the Presets/ folder
-  2 Pull from Mouse.command     → reads onboard mouse profiles (auto: dongle/USB/wired)
-  3 Import to G Hub.command     → adds/updates profiles from Presets/ (keeps extras in G Hub)
-  4 Replace G Hub with Presets  → G Hub = Presets folder only (removes bloat, type YES)
-
-Your preset files live in:
-  (this repo)/Presets/
-
-You can delete, duplicate, or rename .lghub-preset.json files there like normal files.
+Quit G Hub first, then run 1 Export, 2 Pull, 3 Import, or 4 Replace.
+Profiles save to: ../../Put Presets Here/

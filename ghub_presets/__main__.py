@@ -27,7 +27,7 @@ from .library import (
     sync_manifest,
 )
 from .manifest import list_manifest_presets, upsert_manifest_entry
-from .paths import default_presets_dir, onboard_dir, presets_dir
+from .paths import PRESETS_DIR_NAME, default_presets_dir, onboard_dir, presets_dir
 from .update_blocker import (
     apply_update_block,
     get_update_block_status,
@@ -61,7 +61,7 @@ def _print_import_result(result) -> None:
         from .system_profile import SYSTEM_PROFILE_LABEL
 
         print(
-            f"(Factory default kept in Presets/_system/{SYSTEM_PROFILE_LABEL}.lghub-preset.json — "
+            f"(Factory default kept in {PRESETS_DIR_NAME}/_system/{SYSTEM_PROFILE_LABEL}.lghub-preset.json — "
             "not shown in G Hub.)"
         )
 
@@ -76,7 +76,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         if not paths:
             print(f"No presets in {library}")
             return 0
-        print("(DONT_TOUCH_SYSTEM is kept in Presets/_system/ — not shown here.)")
+        print(f"(DONT_TOUCH_SYSTEM is kept in {PRESETS_DIR_NAME}/_system/ — not shown here.)")
         print()
         for path in paths:
             try:
@@ -451,7 +451,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--folder",
         default=str(default_presets_dir()),
-        help="Presets folder (default: ./Presets in toolkit, else ~/LogitechPresets)",
+        help=f"Presets folder (default: ./{PRESETS_DIR_NAME} in toolkit, else ~/LogitechPresets)",
     )
     parser.add_argument(
         "--db-path",
@@ -492,19 +492,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_replace = sub.add_parser(
         "replace",
-        help="Remove G Hub profiles not in Presets/, prune bloat, import Presets/",
+        help=f"Remove G Hub profiles not in {PRESETS_DIR_NAME}/, prune bloat, import presets",
     )
     p_replace.add_argument(
         "presets_dir",
         nargs="?",
         default=None,
-        help="Presets folder (default: toolkit Presets/)",
+        help=f"Presets folder (default: toolkit {PRESETS_DIR_NAME}/)",
     )
     p_replace.add_argument("--dry-run", action="store_true", help="Show what would be removed")
     p_replace.add_argument(
         "--all-profiles",
         action="store_true",
-        help="Also remove non-desktop (per-game) profiles not in Presets/",
+        help=f"Also remove non-desktop (per-game) profiles not in {PRESETS_DIR_NAME}/",
     )
     p_replace.add_argument("--target-device", choices=("g502_spectrum", "g502wireless"))
     p_replace.add_argument("--for-mac", action="store_true")
@@ -556,7 +556,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Show G Hub and preset paths")
     sub.add_parser(
         "backup",
-        help="Copy settings.db to Presets/_archive/ (safe snapshot before changes)",
+        help=f"Copy settings.db to {PRESETS_DIR_NAME}/_archive/ (safe snapshot before changes)",
     )
     sub.add_parser(
         "quit-ghub",
