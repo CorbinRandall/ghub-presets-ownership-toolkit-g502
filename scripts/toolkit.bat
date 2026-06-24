@@ -9,7 +9,7 @@ if "%~1"=="" (
 set "ACTION=%~1"
 set "TOOLKIT=%~dp0.."
 for %%I in ("%TOOLKIT%") do set "TOOLKIT=%%~fI"
-set "PRESETS=%TOOLKIT%\Presets"
+set "PRESETS=%TOOLKIT%\Put Presets Here"
 
 set "GHUB_PRESET_TOOLKIT_ROOT=%TOOLKIT%"
 set "GHUB_PRESETS_DIR=%PRESETS%"
@@ -138,7 +138,7 @@ echo.
 dir /b "%PRESETS%\*.lghub-preset.json" >nul 2>&1
 if errorlevel 1 (
   echo No preset files in %PRESETS%
-  echo Run "1 Export from G Hub.bat" first, or copy .lghub-preset.json files into Presets\
+  echo Run "1 Export from G Hub.bat" first, or copy .lghub-preset.json files into "Put Presets Here"\
   goto :done_fail
 )
 %PY% -m ghub_presets --folder "%PRESETS%" backup

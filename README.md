@@ -15,7 +15,7 @@ Take full control of your Logitech G Hub mouse profiles — **export**, **pull f
 | **Export** | Backup all G Hub profiles to portable `.lghub-preset.json` files |
 | **Pull** | Read profiles stored on the mouse (HID++ onboard memory) |
 | **Import** | Restore presets into G Hub’s database |
-| **Replace** | Make G Hub match your `Presets/` folder only (removes bloat) |
+| **Replace** | Make G Hub match your `Put Presets Here/` folder only (removes bloat) |
 | **Block updates** *(optional)* | Pin G Hub version — block auto-updates so this toolkit keeps working |
 
 Works on **macOS** and **Windows**. Noob-friendly double-click scripts included.
@@ -23,7 +23,7 @@ Works on **macOS** and **Windows**. Noob-friendly double-click scripts included.
 ```
 ghub-presets/
 ├── START_HERE.md
-├── Presets/              ← your profiles (gitignored — yours stay local)
+├── Put Presets Here/   ← your profiles (starts empty; gitignored once exported)
 ├── Executables/
 │   ├── mac/              ← .command files
 │   └── windows/          ← .bat files
@@ -38,7 +38,7 @@ ghub-presets/
 4. Use **Export**, **Pull**, **Import**, or **Replace** from `Executables/`  
 5. Open G Hub  
 
-Your personal presets never leave your machine unless you copy the `Presets/` folder yourself.
+Your personal presets never leave your machine unless you copy the `Put Presets Here/` folder yourself.
 
 ## Optional: block G Hub auto-updates
 
@@ -79,8 +79,8 @@ Details and recovery: [SECURITY.md](SECURITY.md). Not affiliated with Logitech �
 pip install -e .
 ghub-presets status
 ghub-presets export --all
-ghub-presets import Presets/ --replace
-ghub-presets replace Presets/
+ghub-presets import "Put Presets Here/" --replace
+ghub-presets replace "Put Presets Here/"
 ghub-presets pull --slot 1 --device auto   # or g502 | g502wireless | g502wireless-dongle
 ghub-presets quit-ghub
 ghub-presets block-updates      # optional; admin/sudo required

@@ -6,7 +6,7 @@
 |--------|------|----------------|
 | **`settings.db`** | Import, Replace, Export (read) | SQLite database used by Logitech G HUB on your PC/Mac |
 | **`settings.db.backup-*`** | Before Import / Replace writes | Automatic timestamped copy of the database file |
-| **`Presets/*.lghub-preset.json`** | Export, Pull | JSON files you own; safe to copy, delete, or encrypt |
+| **`Put Presets Here/*.lghub-preset.json`** | Export, Pull | JSON files you own; safe to copy, delete, or encrypt |
 | **Mouse onboard memory** | Pull only | Read-only via HID++; writes only if you later save profiles in G Hub to the device |
 
 This tool does **not**:
@@ -28,7 +28,7 @@ If you run `block-updates` (or `0c Block G Hub Updates`), the toolkit may modify
 | **`C:\Windows\System32\drivers\etc\hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
 | **`LGHUBUpdaterService`** | Kept **automatic and running** — G Hub boot-loops if this service is disabled |
 | **`HKLM` / `HKCU` `Software\Logitech\GHUB`** | DWORDs such as `AutoUpdateCheckEnabled=0` (created if missing) |
-| **`Presets/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
+| **`Put Presets Here/_archive/ghub-update-block.json`** | Saved prior service startup type and registry values for undo |
 
 Use `0c` / `0d` `.bat` files or `ghub-presets block-updates` (admin required).
 
@@ -38,7 +38,7 @@ Use `0c` / `0d` `.bat` files or `ghub-presets block-updates` (admin required).
 |--------|----------------|
 | **`/etc/hosts`** | `127.0.0.1` entries for Logitech update/pipeline hosts (marked with a toolkit comment) |
 | **`com.logi.ghub.updater`** | LaunchDaemon at `/Library/LaunchDaemons/com.logi.ghub.updater.plist` is kept **loaded** — do not bootout/disable or G Hub may fail to start |
-| **`Presets/_archive/ghub-update-block.json`** | Undo metadata |
+| **`Put Presets Here/_archive/ghub-update-block.json`** | Undo metadata |
 
 Use `0c` / `0d` `.command` files or `ghub-presets block-updates` (sudo / admin password required).
 
@@ -66,9 +66,9 @@ settings.db.backup-YYYYMMDD-HHMMSS
 ## Safe usage checklist
 
 1. **Quit G Hub** — menu bar → Quit Logitech G HUB, or run `ghub-presets quit-ghub`.
-2. **Export first** — keep a copy of profiles in `Presets/` before Replace.
+2. **Export first** — keep a copy of profiles in `Put Presets Here/` before Replace.
 3. **Verify** — run `ghub-presets status` and confirm `G Hub blocking: False`.
-4. **Replace** — review the dry-run list; only desktop mouse profiles not in `Presets/` are removed.
+4. **Replace** — review the dry-run list; only desktop mouse profiles not in `Put Presets Here/` are removed.
 5. **Reopen G Hub** — confirm profiles look correct.
 
 ## If G Hub looks wrong after import
@@ -88,6 +88,6 @@ This project is a local admin tool: it assumes you trust the preset files you im
 
 ## Privacy
 
-- Preset JSON may contain macro keystrokes and profile names you created — treat `Presets/` as **personal data**.
-- The public git repository **gitignores** `Presets/*.lghub-preset.json` so your profiles are not published with the toolkit by default.
+- Preset JSON may contain macro keystrokes and profile names you created — treat `Put Presets Here/` as **personal data**.
+- The public git repository **gitignores** `Put Presets Here/*.lghub-preset.json` so your profiles are not published with the toolkit by default.
 - Do not commit or share preset files if they contain sensitive macro sequences or account-related shortcuts.

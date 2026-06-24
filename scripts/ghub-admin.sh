@@ -13,7 +13,7 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLKIT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PRESETS="$TOOLKIT/Presets"
+PRESETS="$TOOLKIT/Put Presets Here"
 
 export GHUB_PRESET_TOOLKIT_ROOT="$TOOLKIT"
 export GHUB_PRESETS_DIR="$PRESETS"

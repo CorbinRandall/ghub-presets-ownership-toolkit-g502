@@ -3,7 +3,7 @@ setlocal
 set "ROOT=%~dp0"
 for %%I in ("%ROOT%") do set "ROOT=%%~fI"
 set "GHUB_PRESET_TOOLKIT_ROOT=%ROOT%"
-set "GHUB_PRESETS_DIR=%ROOT%\Presets"
+set "GHUB_PRESETS_DIR=%ROOT%\Put Presets Here"
 set "PYTHONPATH=%ROOT%;%PYTHONPATH%"
 
 set "PY=python"
@@ -16,4 +16,4 @@ if not defined PY (
   exit /b 1
 )
 
-%PY% -m ghub_presets --folder "%ROOT%\Presets" %*
+%PY% -m ghub_presets --folder "%ROOT%\Put Presets Here" %*
